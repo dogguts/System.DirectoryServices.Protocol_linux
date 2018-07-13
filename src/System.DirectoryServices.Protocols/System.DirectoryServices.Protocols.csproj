@@ -11,6 +11,19 @@
     <TargetsUnix>true</TargetsUnix>
   </PropertyGroup>
 
+  <PropertyGroup>
+    <PackageId>S.DS.P.linux</PackageId>
+    <PackageVersion>0.0.1</PackageVersion>
+    <Authors>dogguts</Authors>
+    <Description>Proof of concept port of dotnet/corefx System.DirectoryServices.Protocols against libldap/openldap for Linux</Description>
+    <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
+    <PackageTags>ldap linux directory services</PackageTags>
+    <PackageProjectUrl>https://github.com/dogguts/System.DirectoryServices.Protocol_linux</PackageProjectUrl>
+    <PackageReleaseNotes>Not even pre-pre-alpha. Don't even dare using this on a production environment.</PackageReleaseNotes>
+    <IncludeSource>True</IncludeSource>
+    <IncludeSymbols>True</IncludeSymbols>    
+  </PropertyGroup>
+
   <ItemGroup Condition="'$(TargetGroup)' != 'netstandard'">
     <Compile Include="System\DirectoryServices\Protocols\common\AuthTypes.cs" />
     <Compile Include="System\DirectoryServices\Protocols\common\BerConverter.cs" />
