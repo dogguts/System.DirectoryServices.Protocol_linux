@@ -286,9 +286,9 @@ namespace System.DirectoryServices.Protocols
             }
             else
             {
-                berValue.bv_len = value.Length;
-                berValue.bv_val = Marshal.AllocHGlobal(value.Length);
-                Marshal.Copy(value, 0, berValue.bv_val, value.Length);
+            berValue.bv_len = value.Length;
+            berValue.bv_val = Marshal.AllocHGlobal(value.Length);
+            Marshal.Copy(value, 0, berValue.bv_val, value.Length);
             }
 
             try
