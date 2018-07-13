@@ -12,6 +12,7 @@ namespace System.DirectoryServices.Protocols
 {
     public static class BerConverter
     {
+        private const int LBER_ERROR = -1;
         public static byte[] Encode(string format, params object[] value)
         {
             if (format == null)
@@ -309,7 +310,7 @@ namespace System.DirectoryServices.Protocols
                 {
                     error = Wldap32.ber_scanf(berElement, new string(fmt, 1));
 
-                    if (error != 0)
+                    if (error == LBER_ERROR)
                         Debug.WriteLine("ber_scanf for {, }, [, ], n or x failed");
                 }
                 else if (fmt == 'i' || fmt == 'e' || fmt == 'b')
@@ -317,7 +318,7 @@ namespace System.DirectoryServices.Protocols
                     int result = 0;
                     error = Wldap32.ber_scanf_int(berElement, new string(fmt, 1), ref result);
 
-                    if (error == 0)
+                    if (error != LBER_ERROR)
                     {
                         if (fmt == 'b')
                         {
@@ -341,7 +342,7 @@ namespace System.DirectoryServices.Protocols
                 {
                     // return a string
                     byte[] byteArray = DecodingByteArrayHelper(berElement, 'O', ref error);
-                    if (error == 0)
+                    if (error != LBER_ERROR)
                     {
                         string s = null;
                         if (byteArray != null)
@@ -354,7 +355,7 @@ namespace System.DirectoryServices.Protocols
                 {
                     // return berval                   
                     byte[] byteArray = DecodingByteArrayHelper(berElement, fmt, ref error);
-                    if (error == 0)
+                    if (error != LBER_ERROR)
                     {
                         // add result to the list
                         resultList.Add(byteArray);
@@ -367,7 +368,7 @@ namespace System.DirectoryServices.Protocols
                     int length = 0;
                     error = Wldap32.ber_scanf_bitstring(berElement, "B", ref ptrResult, ref length);
 
-                    if (error == 0)
+                    if (error != LBER_ERROR)
                     {
                         byte[] byteArray = null;
                         if (ptrResult != IntPtr.Zero)
@@ -390,7 +391,7 @@ namespace System.DirectoryServices.Protocols
                     string[] stringArray = null;
 
                     byteArrayresult = DecodingMultiByteArrayHelper(berElement, 'V', ref error);
-                    if (error == 0)
+                    if (error != LBER_ERROR)
                     {
                         if (byteArrayresult != null)
                         {
@@ -416,7 +417,7 @@ namespace System.DirectoryServices.Protocols
                     byte[][] result = null;
 
                     result = DecodingMultiByteArrayHelper(berElement, fmt, ref error);
-                    if (error == 0)
+                    if (error != LBER_ERROR)
                     {
                         resultList.Add(result);
                     }
@@ -427,7 +428,7 @@ namespace System.DirectoryServices.Protocols
                     throw new ArgumentException(string.Format(CultureInfo.CurrentCulture, SR.BerConverterUndefineChar));
                 }
 
-                if (error != 0)
+                if (error == LBER_ERROR)
                 {
                     // decode failed, just return
                     return decodeResult;
@@ -449,18 +450,21 @@ namespace System.DirectoryServices.Protocols
             int error = 0;
 
             // one byte array, one int arguments
-            if (tempValue != null)
-            {
-                IntPtr tmp = Marshal.AllocHGlobal(tempValue.Length);
-                Marshal.Copy(tempValue, 0, tmp, tempValue.Length);
-                HGlobalMemHandle memHandle = new HGlobalMemHandle(tmp);
+            //if (tempValue != null)
+            //{
 
-                error = Wldap32.ber_printf_bytearray(berElement, new string(fmt, 1), memHandle, tempValue.Length);
-            }
-            else
-            {
-                error = Wldap32.ber_printf_bytearray(berElement, new string(fmt, 1), new HGlobalMemHandle(IntPtr.Zero), 0);
-            }
+            tempValue = tempValue ?? new byte[0]; //openLdap ber_printf doesn't cope well with null values
+
+            IntPtr tmp = Marshal.AllocHGlobal(tempValue.Length);
+            Marshal.Copy(tempValue, 0, tmp, tempValue.Length);
+            HGlobalMemHandle memHandle = new HGlobalMemHandle(tmp);
+
+            error = Wldap32.ber_printf_bytearray(berElement, new string(fmt, 1), memHandle, tempValue.Length);
+            //}
+            //else
+            //{
+            //    error = Wldap32.ber_printf_bytearray(berElement, new string(fmt, 1), new HGlobalMemHandle(IntPtr.Zero), 0);
+            //}
 
             return error;
         }
@@ -478,7 +482,7 @@ namespace System.DirectoryServices.Protocols
 
             try
             {
-                if (error == 0)
+                if (error != LBER_ERROR)
                 {
                     if (result != IntPtr.Zero)
                     {
@@ -582,7 +586,7 @@ namespace System.DirectoryServices.Protocols
             {
                 error = Wldap32.ber_scanf_ptr(berElement, new string(fmt, 1), ref ptrResult);
 
-                if (error == 0)
+                if (error != LBER_ERROR)
                 {
                     if (ptrResult != IntPtr.Zero)
                     {
