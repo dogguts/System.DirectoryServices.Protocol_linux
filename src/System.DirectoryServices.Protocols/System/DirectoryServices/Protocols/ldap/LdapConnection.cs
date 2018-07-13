@@ -14,17 +14,19 @@ using System.Threading;
 using System.Security.Cryptography.X509Certificates;
 using System.Security.Permissions;
 
-namespace System.DirectoryServices.Protocols {
+namespace System.DirectoryServices.Protocols
+{
     internal delegate DirectoryResponse GetLdapResponseCallback(int messageId, LdapOperation operation, ResultAll resultType, TimeSpan requestTimeout, bool exceptionOnTimeOut);
 
     [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
     internal delegate bool QUERYCLIENTCERT(IntPtr Connection, IntPtr trusted_CAs, ref IntPtr certificateHandle);
 
-    internal delegate string PtrToString(IntPtr ptr);
-    internal delegate IntPtr StringToHGlobal(string s);
 
-    public class LdapConnection : DirectoryConnection, IDisposable {
-        internal enum LdapResult {
+
+    public class LdapConnection : DirectoryConnection, IDisposable
+    {
+        internal enum LdapResult
+        {
             LDAP_RES_SEARCH_RESULT = 0x65,
             LDAP_RES_SEARCH_ENTRY = 0x64,
             LDAP_RES_MODIFY = 0x67,
@@ -54,10 +56,9 @@ namespace System.DirectoryServices.Protocols {
         private bool _connected = false;
         internal QUERYCLIENTCERT _clientCertificateRoutine = null;
 
-        internal PtrToString PtrToString = Marshal.PtrToStringUTF8; //TODO: Windows:PtrToStringUni , Linux: PtrToStringUTF8
-        internal StringToHGlobal StringToHGlobal = Wldap32.StringToHGlobalUTF8;//TODO: Windows:Marshal.StringToHGlobalUni, Linux: Wldap32.StringToHGlobalUTF8
 
-        static LdapConnection() {
+        static LdapConnection()
+        {
             s_handleTable = new Hashtable();
 
             // Initialize the lock.
@@ -73,28 +74,34 @@ namespace System.DirectoryServices.Protocols {
             s_retriever = new PartialResultsRetriever(s_waitHandle, s_partialResultsProcessor);
         }
 
-        public LdapConnection(string server) : this(new LdapDirectoryIdentifier(server)) {
+        public LdapConnection(string server) : this(new LdapDirectoryIdentifier(server))
+        {
         }
 
-        public LdapConnection(LdapDirectoryIdentifier identifier) : this(identifier, null, AuthType.Negotiate) {
+        public LdapConnection(LdapDirectoryIdentifier identifier) : this(identifier, null, AuthType.Negotiate)
+        {
         }
 
-        public LdapConnection(LdapDirectoryIdentifier identifier, NetworkCredential credential) : this(identifier, credential, AuthType.Negotiate) {
+        public LdapConnection(LdapDirectoryIdentifier identifier, NetworkCredential credential) : this(identifier, credential, AuthType.Negotiate)
+        {
         }
 
-        public LdapConnection(LdapDirectoryIdentifier identifier, NetworkCredential credential, AuthType authType) {
+        public LdapConnection(LdapDirectoryIdentifier identifier, NetworkCredential credential, AuthType authType)
+        {
             _fd = new GetLdapResponseCallback(ConstructResponse);
             _directoryIdentifier = identifier;
             _directoryCredential = (credential != null) ? new NetworkCredential(credential.UserName, credential.Password, credential.Domain) : null;
 
             _connectionAuthType = authType;
 
-            if (authType < AuthType.Anonymous || authType > AuthType.Kerberos) {
+            if (authType < AuthType.Anonymous || authType > AuthType.Kerberos)
+            {
                 throw new InvalidEnumArgumentException(nameof(authType), (int)authType, typeof(AuthType));
             }
 
             // Throw if user wants to do anonymous bind but specifies credentials.
-            if (AuthType == AuthType.Anonymous && (_directoryCredential != null && (!string.IsNullOrEmpty(_directoryCredential.Password) || !string.IsNullOrEmpty(_directoryCredential.UserName)))) {
+            if (AuthType == AuthType.Anonymous && (_directoryCredential != null && (!string.IsNullOrEmpty(_directoryCredential.Password) || !string.IsNullOrEmpty(_directoryCredential.UserName))))
+            {
                 throw new ArgumentException(SR.InvalidAuthCredential);
             }
 
@@ -103,7 +110,8 @@ namespace System.DirectoryServices.Protocols {
             _clientCertificateRoutine = new QUERYCLIENTCERT(ProcessClientCertificate);
         }
 
-        internal LdapConnection(LdapDirectoryIdentifier identifier, NetworkCredential credential, AuthType authType, IntPtr handle) {
+        internal LdapConnection(LdapDirectoryIdentifier identifier, NetworkCredential credential, AuthType authType, IntPtr handle)
+        {
             _directoryIdentifier = identifier;
             _needDispose = false;
             _ldapHandle = new ConnectionHandle(handle, _needDispose);
@@ -115,15 +123,19 @@ namespace System.DirectoryServices.Protocols {
 
         ~LdapConnection() => Dispose(false);
 
-        public override TimeSpan Timeout {
+        public override TimeSpan Timeout
+        {
             get => _connectionTimeOut;
-            set {
-                if (value < TimeSpan.Zero) {
+            set
+            {
+                if (value < TimeSpan.Zero)
+                {
                     throw new ArgumentException(SR.NoNegativeTimeLimit, nameof(value));
                 }
 
                 // Prevent integer overflow.
-                if (value.TotalSeconds > int.MaxValue) {
+                if (value.TotalSeconds > int.MaxValue)
+                {
                     throw new ArgumentException(SR.TimespanExceedMax, nameof(value));
                 }
 
@@ -131,16 +143,20 @@ namespace System.DirectoryServices.Protocols {
             }
         }
 
-        public AuthType AuthType {
+        public AuthType AuthType
+        {
             get => _connectionAuthType;
-            set {
-                if (value < AuthType.Anonymous || value > AuthType.Kerberos) {
+            set
+            {
+                if (value < AuthType.Anonymous || value > AuthType.Kerberos)
+                {
                     throw new InvalidEnumArgumentException(nameof(value), (int)value, typeof(AuthType));
                 }
 
                 // If the change is made after we have bound to the server and value is really
                 // changed, set the flag to indicate the need to do rebind.
-                if (_bounded && (value != _connectionAuthType)) {
+                if (_bounded && (value != _connectionAuthType))
+                {
                     _needRebind = true;
                 }
 
@@ -150,9 +166,12 @@ namespace System.DirectoryServices.Protocols {
 
         public LdapSessionOptions SessionOptions { get; }
 
-        public override NetworkCredential Credential {
-            set {
-                if (_bounded && !SameCredential(_directoryCredential, value)) {
+        public override NetworkCredential Credential
+        {
+            set
+            {
+                if (_bounded && !SameCredential(_directoryCredential, value))
+                {
                     _needRebind = true;
                 }
 
@@ -162,10 +181,13 @@ namespace System.DirectoryServices.Protocols {
 
         public bool AutoBind { get; set; } = true;
 
-        internal bool NeedDispose {
+        internal bool NeedDispose
+        {
             get => _needDispose;
-            set {
-                if (_ldapHandle != null) {
+            set
+            {
+                if (_ldapHandle != null)
+                {
                     _ldapHandle._needDispose = value;
                 }
 
@@ -173,35 +195,46 @@ namespace System.DirectoryServices.Protocols {
             }
         }
 
-        internal void Init() {
+        internal void Init()
+        {
             string hostname = null;
             string[] servers = ((LdapDirectoryIdentifier)_directoryIdentifier)?.Servers;
-            if (servers != null && servers.Length != 0) {
+            if (servers != null && servers.Length != 0)
+            {
                 var temp = new StringBuilder(200);
-                for (int i = 0; i < servers.Length; i++) {
-                    if (servers[i] != null) {
+                for (int i = 0; i < servers.Length; i++)
+                {
+                    if (servers[i] != null)
+                    {
                         temp.Append(servers[i]);
-                        if (i < servers.Length - 1) {
+                        if (i < servers.Length - 1)
+                        {
                             temp.Append(" ");
                         }
                     }
                 }
 
-                if (temp.Length != 0) {
+                if (temp.Length != 0)
+                {
                     hostname = temp.ToString();
                 }
             }
 
             // User wants to setup a connectionless session with server.
-            if (((LdapDirectoryIdentifier)_directoryIdentifier).Connectionless == true) {
+            if (((LdapDirectoryIdentifier)_directoryIdentifier).Connectionless == true)
+            {
                 _ldapHandle = new ConnectionHandle(Wldap32.cldap_open(hostname, ((LdapDirectoryIdentifier)_directoryIdentifier).PortNumber), _needDispose);
-            } else {
+            }
+            else
+            {
                 _ldapHandle = new ConnectionHandle(Wldap32.ldap_init(hostname, ((LdapDirectoryIdentifier)_directoryIdentifier).PortNumber), _needDispose);
             }
 
             // Create a WeakReference object with the target of ldapHandle and put it into our handle table.
-            lock (s_objectLock) {
-                if (s_handleTable[_ldapHandle.DangerousGetHandle()] != null) {
+            lock (s_objectLock)
+            {
+                if (s_handleTable[_ldapHandle.DangerousGetHandle()] != null)
+                {
                     s_handleTable.Remove(_ldapHandle.DangerousGetHandle());
                 }
 
@@ -209,21 +242,26 @@ namespace System.DirectoryServices.Protocols {
             }
         }
 
-        public override DirectoryResponse SendRequest(DirectoryRequest request) {
+        public override DirectoryResponse SendRequest(DirectoryRequest request)
+        {
             // No request specific timeout is specified, use the connection timeout.
             return SendRequest(request, _connectionTimeOut);
         }
 
-        public DirectoryResponse SendRequest(DirectoryRequest request, TimeSpan requestTimeout) {
-            if (_disposed) {
+        public DirectoryResponse SendRequest(DirectoryRequest request, TimeSpan requestTimeout)
+        {
+            if (_disposed)
+            {
                 throw new ObjectDisposedException(GetType().Name);
             }
 
-            if (request == null) {
+            if (request == null)
+            {
                 throw new ArgumentNullException(nameof(request));
             }
 
-            if (request is DsmlAuthRequest) {
+            if (request is DsmlAuthRequest)
+            {
                 throw new NotSupportedException(SR.DsmlAuthRequestNotSupported);
             }
 
@@ -231,26 +269,43 @@ namespace System.DirectoryServices.Protocols {
             int error = SendRequestHelper(request, ref messageID);
 
             LdapOperation operation = LdapOperation.LdapSearch;
-            if (request is DeleteRequest) {
+            if (request is DeleteRequest)
+            {
                 operation = LdapOperation.LdapDelete;
-            } else if (request is AddRequest) {
+            }
+            else if (request is AddRequest)
+            {
                 operation = LdapOperation.LdapAdd;
-            } else if (request is ModifyRequest) {
+            }
+            else if (request is ModifyRequest)
+            {
                 operation = LdapOperation.LdapModify;
-            } else if (request is SearchRequest) {
+            }
+            else if (request is SearchRequest)
+            {
                 operation = LdapOperation.LdapSearch;
-            } else if (request is ModifyDNRequest) {
+            }
+            else if (request is ModifyDNRequest)
+            {
                 operation = LdapOperation.LdapModifyDn;
-            } else if (request is CompareRequest) {
+            }
+            else if (request is CompareRequest)
+            {
                 operation = LdapOperation.LdapCompare;
-            } else if (request is ExtendedRequest) {
+            }
+            else if (request is ExtendedRequest)
+            {
                 operation = LdapOperation.LdapExtendedRequest;
             }
 
-            if (error == 0 && messageID != -1) {
+            if (error == 0 && messageID != -1)
+            {
                 return ConstructResponse(messageID, operation, ResultAll.LDAP_MSG_ALL, requestTimeout, true);
-            } else {
-                if (error == 0) {
+            }
+            else
+            {
+                if (error == 0)
+                {
                     // Success code but message is -1, unexpected.
                     error = Wldap32.LdapGetLastError();
                 }
@@ -259,28 +314,56 @@ namespace System.DirectoryServices.Protocols {
             }
         }
 
-        public IAsyncResult BeginSendRequest(DirectoryRequest request, PartialResultProcessing partialMode, AsyncCallback callback, object state) {
+        //TODO: GetStringValueHelper here only temp
+        private string GetStringValueHelper(LdapOption option, bool releasePtr)
+        {
+            IntPtr outValue = new IntPtr(0);
+            int error = Wldap32.ldap_get_option_ptr(_ldapHandle, option, ref outValue);
+            ErrorChecking.CheckAndSetLdapError(error);
+
+            string stringValue = null;
+            if (outValue != IntPtr.Zero)
+            {
+                stringValue = Encoding.PtrToString(outValue);
+            }
+
+            if (releasePtr)
+            {
+                Wldap32.ldap_memfree(outValue);
+            }
+
+            return stringValue;
+        }
+
+        public IAsyncResult BeginSendRequest(DirectoryRequest request, PartialResultProcessing partialMode, AsyncCallback callback, object state)
+        {
             return BeginSendRequest(request, _connectionTimeOut, partialMode, callback, state);
         }
 
-        public IAsyncResult BeginSendRequest(DirectoryRequest request, TimeSpan requestTimeout, PartialResultProcessing partialMode, AsyncCallback callback, object state) {
-            if (_disposed) {
+        public IAsyncResult BeginSendRequest(DirectoryRequest request, TimeSpan requestTimeout, PartialResultProcessing partialMode, AsyncCallback callback, object state)
+        {
+            if (_disposed)
+            {
                 throw new ObjectDisposedException(GetType().Name);
             }
 
-            if (request == null) {
+            if (request == null)
+            {
                 throw new ArgumentNullException(nameof(request));
             }
 
-            if (partialMode < PartialResultProcessing.NoPartialResultSupport || partialMode > PartialResultProcessing.ReturnPartialResultsAndNotifyCallback) {
+            if (partialMode < PartialResultProcessing.NoPartialResultSupport || partialMode > PartialResultProcessing.ReturnPartialResultsAndNotifyCallback)
+            {
                 throw new InvalidEnumArgumentException(nameof(partialMode), (int)partialMode, typeof(PartialResultProcessing));
             }
 
-            if (partialMode != PartialResultProcessing.NoPartialResultSupport && !(request is SearchRequest)) {
+            if (partialMode != PartialResultProcessing.NoPartialResultSupport && !(request is SearchRequest))
+            {
                 throw new NotSupportedException(SR.PartialResultsNotSupported);
             }
 
-            if (partialMode == PartialResultProcessing.ReturnPartialResultsAndNotifyCallback && callback == null) {
+            if (partialMode == PartialResultProcessing.ReturnPartialResultsAndNotifyCallback && callback == null)
+            {
                 throw new ArgumentException(SR.CallBackIsNull, nameof(callback));
             }
 
@@ -288,24 +371,39 @@ namespace System.DirectoryServices.Protocols {
             int error = SendRequestHelper(request, ref messageID);
 
             LdapOperation operation = LdapOperation.LdapSearch;
-            if (request is DeleteRequest) {
+            if (request is DeleteRequest)
+            {
                 operation = LdapOperation.LdapDelete;
-            } else if (request is AddRequest) {
+            }
+            else if (request is AddRequest)
+            {
                 operation = LdapOperation.LdapAdd;
-            } else if (request is ModifyRequest) {
+            }
+            else if (request is ModifyRequest)
+            {
                 operation = LdapOperation.LdapModify;
-            } else if (request is SearchRequest) {
+            }
+            else if (request is SearchRequest)
+            {
                 operation = LdapOperation.LdapSearch;
-            } else if (request is ModifyDNRequest) {
+            }
+            else if (request is ModifyDNRequest)
+            {
                 operation = LdapOperation.LdapModifyDn;
-            } else if (request is CompareRequest) {
+            }
+            else if (request is CompareRequest)
+            {
                 operation = LdapOperation.LdapCompare;
-            } else if (request is ExtendedRequest) {
+            }
+            else if (request is ExtendedRequest)
+            {
                 operation = LdapOperation.LdapExtendedRequest;
             }
 
-            if (error == 0 && messageID != -1) {
-                if (partialMode == PartialResultProcessing.NoPartialResultSupport) {
+            if (error == 0 && messageID != -1)
+            {
+                if (partialMode == PartialResultProcessing.NoPartialResultSupport)
+                {
                     var requestState = new LdapRequestState();
                     var asyncResult = new LdapAsyncResult(callback, state, false);
 
@@ -317,7 +415,9 @@ namespace System.DirectoryServices.Protocols {
                     _fd.BeginInvoke(messageID, operation, ResultAll.LDAP_MSG_ALL, requestTimeout, true, new AsyncCallback(ResponseCallback), requestState);
 
                     return asyncResult;
-                } else {
+                }
+                else
+                {
                     // the user registers to retrieve partial results
                     bool partialCallback = partialMode == PartialResultProcessing.ReturnPartialResultsAndNotifyCallback;
 
@@ -328,7 +428,8 @@ namespace System.DirectoryServices.Protocols {
                 }
             }
 
-            if (error == 0) {
+            if (error == 0)
+            {
                 // Success code but message is -1, unexpected.
                 error = Wldap32.LdapGetLastError();
             }
@@ -336,13 +437,17 @@ namespace System.DirectoryServices.Protocols {
             throw ConstructException(error, operation);
         }
 
-        private void ResponseCallback(IAsyncResult asyncResult) {
+        private void ResponseCallback(IAsyncResult asyncResult)
+        {
             LdapRequestState requestState = (LdapRequestState)asyncResult.AsyncState;
 
-            try {
+            try
+            {
                 DirectoryResponse response = _fd.EndInvoke(asyncResult);
                 requestState._response = response;
-            } catch (Exception e) {
+            }
+            catch (Exception e)
+            {
                 requestState._exception = e;
                 requestState._response = null;
             }
@@ -351,29 +456,36 @@ namespace System.DirectoryServices.Protocols {
             requestState._ldapAsync._manualResetEvent.Set();
             requestState._ldapAsync._completed = true;
 
-            if (requestState._ldapAsync._callback != null && !requestState._abortCalled) {
+            if (requestState._ldapAsync._callback != null && !requestState._abortCalled)
+            {
                 requestState._ldapAsync._callback(requestState._ldapAsync);
             }
         }
 
-        public void Abort(IAsyncResult asyncResult) {
-            if (_disposed) {
+        public void Abort(IAsyncResult asyncResult)
+        {
+            if (_disposed)
+            {
                 throw new ObjectDisposedException(GetType().Name);
             }
 
-            if (asyncResult == null) {
+            if (asyncResult == null)
+            {
                 throw new ArgumentNullException(nameof(asyncResult));
             }
 
-            if (!(asyncResult is LdapAsyncResult)) {
+            if (!(asyncResult is LdapAsyncResult))
+            {
                 throw new ArgumentException(String.Format(SR.NotReturnedAsyncResult, nameof(asyncResult)));
             }
 
             int messageId = -1;
 
             LdapAsyncResult result = (LdapAsyncResult)asyncResult;
-            if (!result._partialResults) {
-                if (!s_asyncResultTable.Contains(asyncResult)) {
+            if (!result._partialResults)
+            {
+                if (!s_asyncResultTable.Contains(asyncResult))
+                {
                     throw new ArgumentException(SR.InvalidAsyncResult);
                 }
 
@@ -381,7 +493,9 @@ namespace System.DirectoryServices.Protocols {
 
                 // remove the asyncResult from our connection table
                 s_asyncResultTable.Remove(asyncResult);
-            } else {
+            }
+            else
+            {
                 s_partialResultsProcessor.Remove((LdapPartialAsyncResult)asyncResult);
                 messageId = ((LdapPartialAsyncResult)asyncResult)._messageID;
             }
@@ -390,49 +504,61 @@ namespace System.DirectoryServices.Protocols {
             Wldap32.ldap_abandon(_ldapHandle, messageId);
 
             LdapRequestState resultObject = result._resultObject;
-            if (resultObject != null) {
+            if (resultObject != null)
+            {
                 resultObject._abortCalled = true;
             }
         }
 
-        public PartialResultsCollection GetPartialResults(IAsyncResult asyncResult) {
-            if (_disposed) {
+        public PartialResultsCollection GetPartialResults(IAsyncResult asyncResult)
+        {
+            if (_disposed)
+            {
                 throw new ObjectDisposedException(GetType().Name);
             }
 
-            if (asyncResult == null) {
+            if (asyncResult == null)
+            {
                 throw new ArgumentNullException(nameof(asyncResult));
             }
 
-            if (!(asyncResult is LdapAsyncResult)) {
+            if (!(asyncResult is LdapAsyncResult))
+            {
                 throw new ArgumentException(String.Format(SR.NotReturnedAsyncResult, nameof(asyncResult)));
             }
 
-            if (!(asyncResult is LdapPartialAsyncResult)) {
+            if (!(asyncResult is LdapPartialAsyncResult))
+            {
                 throw new InvalidOperationException(SR.NoPartialResults);
             }
 
             return s_partialResultsProcessor.GetPartialResults((LdapPartialAsyncResult)asyncResult);
         }
 
-        public DirectoryResponse EndSendRequest(IAsyncResult asyncResult) {
-            if (_disposed) {
+        public DirectoryResponse EndSendRequest(IAsyncResult asyncResult)
+        {
+            if (_disposed)
+            {
                 throw new ObjectDisposedException(GetType().Name);
             }
 
-            if (asyncResult == null) {
+            if (asyncResult == null)
+            {
                 throw new ArgumentNullException(nameof(asyncResult));
             }
 
-            if (!(asyncResult is LdapAsyncResult)) {
+            if (!(asyncResult is LdapAsyncResult))
+            {
                 throw new ArgumentException(String.Format(SR.NotReturnedAsyncResult, nameof(asyncResult)));
             }
 
             LdapAsyncResult result = (LdapAsyncResult)asyncResult;
 
-            if (!result._partialResults) {
+            if (!result._partialResults)
+            {
                 // Not a partial results.
-                if (!s_asyncResultTable.Contains(asyncResult)) {
+                if (!s_asyncResultTable.Contains(asyncResult))
+                {
                     throw new ArgumentException(SR.InvalidAsyncResult);
                 }
 
@@ -441,7 +567,8 @@ namespace System.DirectoryServices.Protocols {
 
                 asyncResult.AsyncWaitHandle.WaitOne();
 
-                if (result._resultObject._exception != null) {
+                if (result._resultObject._exception != null)
+                {
                     throw result._resultObject._exception;
                 }
 
@@ -455,7 +582,8 @@ namespace System.DirectoryServices.Protocols {
             return s_partialResultsProcessor.GetCompleteResult((LdapPartialAsyncResult)asyncResult);
         }
 
-        private int SendRequestHelper(DirectoryRequest request, ref int messageID) {
+        private int SendRequestHelper(DirectoryRequest request, ref int messageID)
+        {
             IntPtr serverControlArray = IntPtr.Zero;
             LdapControl[] managedServerControls = null;
             IntPtr clientControlArray = IntPtr.Zero;
@@ -474,28 +602,33 @@ namespace System.DirectoryServices.Protocols {
             int error = 0;
 
             // Connect to the server first if have not done so.
-            if (!_connected) {
+            if (!_connected)
+            {
                 Connect();
                 _connected = true;
             }
 
             // Bind if user has not turned off automatic bind, have not done so or there is a need
             // to do rebind, also connectionless LDAP does not need to do bind.
-            if (AutoBind && (!_bounded || _needRebind) && ((LdapDirectoryIdentifier)Directory).Connectionless != true) {
+            if (AutoBind && (!_bounded || _needRebind) && ((LdapDirectoryIdentifier)Directory).Connectionless != true)
+            {
                 Debug.WriteLine("rebind occurs\n");
                 Bind();
             }
 
-            try {
+            try
+            {
                 IntPtr tempPtr = IntPtr.Zero;
 
                 // Build server control.
                 managedServerControls = BuildControlArray(request.Controls, true);
                 int structSize = Marshal.SizeOf(typeof(LdapControl));
 
-                if (managedServerControls != null) {
+                if (managedServerControls != null)
+                {
                     serverControlArray = Utility.AllocHGlobalIntPtrArray(managedServerControls.Length + 1);
-                    for (int i = 0; i < managedServerControls.Length; i++) {
+                    for (int i = 0; i < managedServerControls.Length; i++)
+                    {
                         IntPtr controlPtr = Marshal.AllocHGlobal(structSize);
                         Marshal.StructureToPtr(managedServerControls[i], controlPtr, false);
                         tempPtr = (IntPtr)((long)serverControlArray + IntPtr.Size * i);
@@ -508,9 +641,11 @@ namespace System.DirectoryServices.Protocols {
 
                 // build client control
                 managedClientControls = BuildControlArray(request.Controls, false);
-                if (managedClientControls != null) {
+                if (managedClientControls != null)
+                {
                     clientControlArray = Utility.AllocHGlobalIntPtrArray(managedClientControls.Length + 1);
-                    for (int i = 0; i < managedClientControls.Length; i++) {
+                    for (int i = 0; i < managedClientControls.Length; i++)
+                    {
                         IntPtr controlPtr = Marshal.AllocHGlobal(structSize);
                         Marshal.StructureToPtr(managedClientControls[i], controlPtr, false);
                         tempPtr = (IntPtr)((long)clientControlArray + IntPtr.Size * i);
@@ -521,10 +656,13 @@ namespace System.DirectoryServices.Protocols {
                     Marshal.WriteIntPtr(tempPtr, IntPtr.Zero);
                 }
 
-                if (request is DeleteRequest) {
+                if (request is DeleteRequest)
+                {
                     // It is an delete operation.
                     error = Wldap32.ldap_delete_ext(_ldapHandle, ((DeleteRequest)request).DistinguishedName, serverControlArray, clientControlArray, ref messageID);
-                } else if (request is ModifyDNRequest) {
+                }
+                else if (request is ModifyDNRequest)
+                {
                     // It is a modify dn operation
                     error = Wldap32.ldap_rename(_ldapHandle,
                                                  ((ModifyDNRequest)request).DistinguishedName,
@@ -532,28 +670,37 @@ namespace System.DirectoryServices.Protocols {
                                                  ((ModifyDNRequest)request).NewParentDistinguishedName,
                                                  ((ModifyDNRequest)request).DeleteOldRdn ? 1 : 0,
                                                  serverControlArray, clientControlArray, ref messageID);
-                } else if (request is CompareRequest compareRequest) {
+                }
+                else if (request is CompareRequest compareRequest)
+                {
                     // It is a compare request.
                     DirectoryAttribute assertion = compareRequest.Assertion;
-                    if (assertion == null) {
+                    if (assertion == null)
+                    {
                         throw new ArgumentException(SR.WrongAssertionCompare);
                     }
 
-                    if (assertion.Count != 1) {
+                    if (assertion.Count != 1)
+                    {
                         throw new ArgumentException(SR.WrongNumValuesCompare);
                     }
 
                     // Process the attribute.
                     string stringValue = null;
-                    if (assertion[0] is byte[] byteArray) {
-                        if (byteArray != null && byteArray.Length != 0) {
-                            berValuePtr = new berval {
+                    if (assertion[0] is byte[] byteArray)
+                    {
+                        if (byteArray != null && byteArray.Length != 0)
+                        {
+                            berValuePtr = new berval
+                            {
                                 bv_len = byteArray.Length,
                                 bv_val = Marshal.AllocHGlobal(byteArray.Length)
                             };
                             Marshal.Copy(byteArray, 0, berValuePtr.bv_val, byteArray.Length);
                         }
-                    } else {
+                    }
+                    else
+                    {
                         stringValue = assertion[0].ToString();
                     }
 
@@ -564,11 +711,16 @@ namespace System.DirectoryServices.Protocols {
                                                   stringValue,
                                                   berValuePtr,
                                                   serverControlArray, clientControlArray, ref messageID);
-                } else if (request is AddRequest || request is ModifyRequest) {
+                }
+                else if (request is AddRequest || request is ModifyRequest)
+                {
                     // Build the attributes.
-                    if (request is AddRequest) {
+                    if (request is AddRequest)
+                    {
                         modifications = BuildAttributes(((AddRequest)request).Attributes, ptrToFree);
-                    } else {
+                    }
+                    else
+                    {
                         modifications = BuildAttributes(((ModifyRequest)request).Modifications, ptrToFree);
                     }
 
@@ -576,7 +728,8 @@ namespace System.DirectoryServices.Protocols {
                     modArray = Utility.AllocHGlobalIntPtrArray(addModCount);
                     int modStructSize = Marshal.SizeOf(typeof(LdapMod));
                     int i = 0;
-                    for (i = 0; i < addModCount - 1; i++) {
+                    for (i = 0; i < addModCount - 1; i++)
+                    {
                         IntPtr controlPtr = Marshal.AllocHGlobal(modStructSize);
                         Marshal.StructureToPtr(modifications[i], controlPtr, false);
                         tempPtr = (IntPtr)((long)modArray + IntPtr.Size * i);
@@ -585,24 +738,31 @@ namespace System.DirectoryServices.Protocols {
                     tempPtr = (IntPtr)((long)modArray + IntPtr.Size * i);
                     Marshal.WriteIntPtr(tempPtr, IntPtr.Zero);
 
-                    if (request is AddRequest) {
+                    if (request is AddRequest)
+                    {
                         error = Wldap32.ldap_add(_ldapHandle,
                                                   ((AddRequest)request).DistinguishedName,
                                                   modArray,
                                                   serverControlArray, clientControlArray, ref messageID);
-                    } else {
+                    }
+                    else
+                    {
                         error = Wldap32.ldap_modify(_ldapHandle,
                                                      ((ModifyRequest)request).DistinguishedName,
                                                      modArray,
                                                      serverControlArray, clientControlArray, ref messageID);
                     }
-                } else if (request is ExtendedRequest extendedRequest) {
+                }
+                else if (request is ExtendedRequest extendedRequest)
+                {
                     string name = extendedRequest.RequestName;
                     byte[] val = extendedRequest.RequestValue;
 
                     // process the requestvalue
-                    if (val != null && val.Length != 0) {
-                        berValuePtr = new berval() {
+                    if (val != null && val.Length != 0)
+                    {
+                        berValuePtr = new berval()
+                        {
                             bv_len = val.Length,
                             bv_val = Marshal.AllocHGlobal(val.Length)
                         };
@@ -613,12 +773,16 @@ namespace System.DirectoryServices.Protocols {
                                                             name,
                                                             berValuePtr,
                                                             serverControlArray, clientControlArray, ref messageID);
-                } else if (request is SearchRequest searchRequest) {
+                }
+                else if (request is SearchRequest searchRequest)
+                {
                     // Process the filter.
                     object filter = searchRequest.Filter;
-                    if (filter != null) {
+                    if (filter != null)
+                    {
                         // LdapConnection only supports ldap filter.
-                        if (filter is XmlDocument) {
+                        if (filter is XmlDocument)
+                        {
                             throw new ArgumentException(SR.InvalidLdapSearchRequestFilter);
                         }
                     }
@@ -627,11 +791,13 @@ namespace System.DirectoryServices.Protocols {
 
                     // Process the attributes.
                     attributeCount = (searchRequest.Attributes == null ? 0 : searchRequest.Attributes.Count);
-                    if (attributeCount != 0) {
+                    if (attributeCount != 0)
+                    {
                         searchAttributes = Utility.AllocHGlobalIntPtrArray(attributeCount + 1);
                         int i = 0;
-                        for (i = 0; i < attributeCount; i++) {
-                            IntPtr controlPtr = StringToHGlobal(searchRequest.Attributes[i]);
+                        for (i = 0; i < attributeCount; i++)
+                        {
+                            IntPtr controlPtr = Encoding.StringToHGlobal(searchRequest.Attributes[i]);
                             tempPtr = (IntPtr)((long)searchAttributes + IntPtr.Size * i);
                             Marshal.WriteIntPtr(tempPtr, controlPtr);
                         }
@@ -650,7 +816,8 @@ namespace System.DirectoryServices.Protocols {
                     DereferenceAlias searchAliases = SessionOptions.DerefAlias;
                     SessionOptions.DerefAlias = searchRequest.Aliases;
 
-                    try {
+                    try
+                    {
                         error = Wldap32.ldap_search(_ldapHandle,
                                                      searchRequest.DistinguishedName,
                                                      searchScope,
@@ -662,11 +829,15 @@ namespace System.DirectoryServices.Protocols {
                                                      searchTimeLimit,
                                                      searchRequest.SizeLimit,
                                                      ref messageID);
-                    } finally {
+                    }
+                    finally
+                    {
                         // Revert back.
                         SessionOptions.DerefAlias = searchAliases;
                     }
-                } else {
+                }
+                else
+                {
                     throw new NotSupportedException(SR.InvliadRequestType);
                 }
 
@@ -674,44 +845,58 @@ namespace System.DirectoryServices.Protocols {
                 // LDAP_OPT_SEND_TIMEOUT specified in the session option wldap32 does not differentiate
                 // that, but the application caller actually needs this information to determin what to
                 // do with the error code
-                if (error == (int)LdapError.TimeOut) {
+                if (error == (int)LdapError.TimeOut)
+                {
                     error = (int)LdapError.SendTimeOut;
                 }
 
                 return error;
-            } finally {
+            }
+            finally
+            {
                 GC.KeepAlive(modifications);
 
-                if (serverControlArray != IntPtr.Zero) {
+                if (serverControlArray != IntPtr.Zero)
+                {
                     // Release the memory from the heap.
-                    for (int i = 0; i < managedServerControls.Length; i++) {
+                    for (int i = 0; i < managedServerControls.Length; i++)
+                    {
                         IntPtr tempPtr = Marshal.ReadIntPtr(serverControlArray, IntPtr.Size * i);
-                        if (tempPtr != IntPtr.Zero) {
+                        if (tempPtr != IntPtr.Zero)
+                        {
                             Marshal.FreeHGlobal(tempPtr);
                         }
                     }
                     Marshal.FreeHGlobal(serverControlArray);
                 }
 
-                if (managedServerControls != null) {
-                    for (int i = 0; i < managedServerControls.Length; i++) {
-                        if (managedServerControls[i].ldctl_oid != IntPtr.Zero) {
+                if (managedServerControls != null)
+                {
+                    for (int i = 0; i < managedServerControls.Length; i++)
+                    {
+                        if (managedServerControls[i].ldctl_oid != IntPtr.Zero)
+                        {
                             Marshal.FreeHGlobal(managedServerControls[i].ldctl_oid);
                         }
 
-                        if (managedServerControls[i].ldctl_value != null) {
-                            if (managedServerControls[i].ldctl_value.bv_val != IntPtr.Zero) {
+                        if (managedServerControls[i].ldctl_value != null)
+                        {
+                            if (managedServerControls[i].ldctl_value.bv_val != IntPtr.Zero)
+                            {
                                 Marshal.FreeHGlobal(managedServerControls[i].ldctl_value.bv_val);
                             }
                         }
                     }
                 }
 
-                if (clientControlArray != IntPtr.Zero) {
+                if (clientControlArray != IntPtr.Zero)
+                {
                     // Release the memory from the heap.
-                    for (int i = 0; i < managedClientControls.Length; i++) {
+                    for (int i = 0; i < managedClientControls.Length; i++)
+                    {
                         IntPtr tempPtr = Marshal.ReadIntPtr(clientControlArray, IntPtr.Size * i);
-                        if (tempPtr != IntPtr.Zero) {
+                        if (tempPtr != IntPtr.Zero)
+                        {
                             Marshal.FreeHGlobal(tempPtr);
                         }
                     }
@@ -719,25 +904,33 @@ namespace System.DirectoryServices.Protocols {
                     Marshal.FreeHGlobal(clientControlArray);
                 }
 
-                if (managedClientControls != null) {
-                    for (int i = 0; i < managedClientControls.Length; i++) {
-                        if (managedClientControls[i].ldctl_oid != IntPtr.Zero) {
+                if (managedClientControls != null)
+                {
+                    for (int i = 0; i < managedClientControls.Length; i++)
+                    {
+                        if (managedClientControls[i].ldctl_oid != IntPtr.Zero)
+                        {
                             Marshal.FreeHGlobal(managedClientControls[i].ldctl_oid);
                         }
 
-                        if (managedClientControls[i].ldctl_value != null) {
-                            if (managedClientControls[i].ldctl_value.bv_val != IntPtr.Zero) {
+                        if (managedClientControls[i].ldctl_value != null)
+                        {
+                            if (managedClientControls[i].ldctl_value.bv_val != IntPtr.Zero)
+                            {
                                 Marshal.FreeHGlobal(managedClientControls[i].ldctl_value.bv_val);
                             }
                         }
                     }
                 }
 
-                if (modArray != IntPtr.Zero) {
+                if (modArray != IntPtr.Zero)
+                {
                     // release the memory from the heap
-                    for (int i = 0; i < addModCount - 1; i++) {
+                    for (int i = 0; i < addModCount - 1; i++)
+                    {
                         IntPtr tempPtr = Marshal.ReadIntPtr(modArray, IntPtr.Size * i);
-                        if (tempPtr != IntPtr.Zero) {
+                        if (tempPtr != IntPtr.Zero)
+                        {
                             Marshal.FreeHGlobal(tempPtr);
                         }
                     }
@@ -746,19 +939,24 @@ namespace System.DirectoryServices.Protocols {
                 }
 
                 // Free the pointers.
-                for (int x = 0; x < ptrToFree.Count; x++) {
+                for (int x = 0; x < ptrToFree.Count; x++)
+                {
                     IntPtr tempPtr = (IntPtr)ptrToFree[x];
                     Marshal.FreeHGlobal(tempPtr);
                 }
 
-                if (berValuePtr != null && berValuePtr.bv_val != IntPtr.Zero) {
+                if (berValuePtr != null && berValuePtr.bv_val != IntPtr.Zero)
+                {
                     Marshal.FreeHGlobal(berValuePtr.bv_val);
                 }
 
-                if (searchAttributes != IntPtr.Zero) {
-                    for (int i = 0; i < attributeCount; i++) {
+                if (searchAttributes != IntPtr.Zero)
+                {
+                    for (int i = 0; i < attributeCount; i++)
+                    {
                         IntPtr tempPtr = Marshal.ReadIntPtr(searchAttributes, IntPtr.Size * i);
-                        if (tempPtr != IntPtr.Zero) {
+                        if (tempPtr != IntPtr.Zero)
+                        {
                             Marshal.FreeHGlobal(tempPtr);
                         }
                     }
@@ -768,24 +966,29 @@ namespace System.DirectoryServices.Protocols {
             }
         }
 
-        private bool ProcessClientCertificate(IntPtr ldapHandle, IntPtr CAs, ref IntPtr certificate) {
+        private bool ProcessClientCertificate(IntPtr ldapHandle, IntPtr CAs, ref IntPtr certificate)
+        {
             int count = ClientCertificates == null ? 0 : ClientCertificates.Count;
-            if (count == 0 && SessionOptions._clientCertificateDelegate == null) {
+            if (count == 0 && SessionOptions._clientCertificateDelegate == null)
+            {
                 return false;
             }
 
             // If the user specify certificate through property and not though option, we don't need to check the certificate authority.
-            if (SessionOptions._clientCertificateDelegate == null) {
+            if (SessionOptions._clientCertificateDelegate == null)
+            {
                 certificate = ClientCertificates[0].Handle;
                 return true;
             }
 
             // Processing the certificate authority.
             var list = new ArrayList();
-            if (CAs != IntPtr.Zero) {
+            if (CAs != IntPtr.Zero)
+            {
                 SecPkgContext_IssuerListInfoEx trustedCAs = (SecPkgContext_IssuerListInfoEx)Marshal.PtrToStructure(CAs, typeof(SecPkgContext_IssuerListInfoEx));
                 int issuerNumber = trustedCAs.cIssuers;
-                for (int i = 0; i < issuerNumber; i++) {
+                for (int i = 0; i < issuerNumber; i++)
+                {
                     IntPtr tempPtr = (IntPtr)((long)trustedCAs.aIssuers + Marshal.SizeOf(typeof(CRYPTOAPI_BLOB)) * i);
                     CRYPTOAPI_BLOB info = (CRYPTOAPI_BLOB)Marshal.PtrToStructure(tempPtr, typeof(CRYPTOAPI_BLOB));
                     int dataLength = info.cbData;
@@ -797,15 +1000,18 @@ namespace System.DirectoryServices.Protocols {
             }
 
             byte[][] certAuthorities = null;
-            if (list.Count != 0) {
+            if (list.Count != 0)
+            {
                 certAuthorities = new byte[list.Count][];
-                for (int i = 0; i < list.Count; i++) {
+                for (int i = 0; i < list.Count; i++)
+                {
                     certAuthorities[i] = (byte[])list[i];
                 }
             }
 
             X509Certificate cert = SessionOptions._clientCertificateDelegate(this, certAuthorities);
-            if (cert != null) {
+            if (cert != null)
+            {
                 certificate = cert.Handle;
                 return true;
             }
@@ -814,17 +1020,22 @@ namespace System.DirectoryServices.Protocols {
             return false;
         }
 
-        private void Connect() {
+        private void Connect()
+        {
             //Ccurrently ldap does not accept more than one certificate.
-            if (ClientCertificates.Count > 1) {
+            if (ClientCertificates.Count > 1)
+            {
                 throw new InvalidOperationException(SR.InvalidClientCertificates);
             }
 
             // Set the certificate callback routine here if user adds the certifcate to the certificate collection.
-            if (ClientCertificates.Count != 0) {
+            if (ClientCertificates.Count != 0)
+            {
                 int certError = Wldap32.ldap_set_option_clientcert(_ldapHandle, LdapOption.LDAP_OPT_CLIENT_CERTIFICATE, _clientCertificateRoutine);
-                if (certError != (int)ResultCode.Success) {
-                    if (Utility.IsLdapError((LdapError)certError)) {
+                if (certError != (int)ResultCode.Success)
+                {
+                    if (Utility.IsLdapError((LdapError)certError))
+                    {
                         string certerrorMessage = LdapErrorMappings.MapResultCode(certError);
                         throw new LdapException(certError, certerrorMessage);
                     }
@@ -837,22 +1048,27 @@ namespace System.DirectoryServices.Protocols {
             }
 
             // Set the LDAP_OPT_AREC_EXCLUSIVE flag if necessary.
-            if (((LdapDirectoryIdentifier)Directory).FullyQualifiedDnsHostName && !_setFQDNDone) {
+            if (((LdapDirectoryIdentifier)Directory).FullyQualifiedDnsHostName && !_setFQDNDone)
+            {
                 SessionOptions.FQDN = true;
                 _setFQDNDone = true;
             }
 
             // Connect explicitly to the server.
-            var timeout = new LDAP_TIMEVAL() {
+            var timeout = new LDAP_TIMEVAL()
+            {
                 tv_sec = (int)(_connectionTimeOut.Ticks / TimeSpan.TicksPerSecond)
             };
             Debug.Assert(!_ldapHandle.IsInvalid);
             //int error = Wldap32.ldap_connect(_ldapHandle);//, timeout);
-            int error = Wldap32.ldap_connect(_ldapHandle);//, timeout);
+            int error = Wldap32.ldap_connect(_ldapHandle, timeout);
+            //TODO: re-implement timeout
 
             // Filed, throw an exception.
-            if (error != (int)ResultCode.Success) {
-                if (Utility.IsLdapError((LdapError)error)) {
+            if (error != (int)ResultCode.Success)
+            {
+                if (Utility.IsLdapError((LdapError)error))
+                {
                     string errorMessage = LdapErrorMappings.MapResultCode(error);
                     throw new LdapException(error, errorMessage);
                 }
@@ -865,26 +1081,33 @@ namespace System.DirectoryServices.Protocols {
 
         public void Bind(NetworkCredential newCredential) => BindHelper(newCredential, needSetCredential: true);
 
-        private void BindHelper(NetworkCredential newCredential, bool needSetCredential) {
-            if (_disposed) {
+        private void BindHelper(NetworkCredential newCredential, bool needSetCredential)
+        {
+            if (_disposed)
+            {
                 throw new ObjectDisposedException(GetType().Name);
             }
 
             // Throw if user wants to do anonymous bind but specifies credentials.
-            if (AuthType == AuthType.Anonymous && (newCredential != null && (!string.IsNullOrEmpty(newCredential.Password) || string.IsNullOrEmpty(newCredential.UserName)))) {
+            if (AuthType == AuthType.Anonymous && (newCredential != null && (!string.IsNullOrEmpty(newCredential.Password) || string.IsNullOrEmpty(newCredential.UserName))))
+            {
                 throw new InvalidOperationException(SR.InvalidAuthCredential);
             }
 
             // Set the credential.
             NetworkCredential tempCredential = null;
-            if (needSetCredential) {
+            if (needSetCredential)
+            {
                 _directoryCredential = tempCredential = (newCredential != null ? new NetworkCredential(newCredential.UserName, newCredential.Password, newCredential.Domain) : null);
-            } else {
+            }
+            else
+            {
                 tempCredential = _directoryCredential;
             }
 
             // Connect to the server first.
-            if (!_connected) {
+            if (!_connected)
+            {
                 Connect();
                 _connected = true;
             }
@@ -893,42 +1116,54 @@ namespace System.DirectoryServices.Protocols {
             string username;
             string domainName;
             string password;
-            if (tempCredential != null && tempCredential.UserName.Length == 0 && tempCredential.Password.Length == 0 && tempCredential.Domain.Length == 0) {
+            if (tempCredential != null && tempCredential.UserName.Length == 0 && tempCredential.Password.Length == 0 && tempCredential.Domain.Length == 0)
+            {
                 // Default credentials.
                 username = null;
                 domainName = null;
                 password = null;
-            } else {
+            }
+            else
+            {
                 username = tempCredential?.UserName;
                 domainName = tempCredential?.Domain;
                 password = tempCredential?.Password;
             }
 
             int error;
-            if (AuthType == AuthType.Anonymous) {
+            if (AuthType == AuthType.Anonymous)
+            {
                 error = Wldap32.ldap_simple_bind_s(_ldapHandle, null, null);
 
-            } else if (AuthType == AuthType.Basic) {
+            }
+            else if (AuthType == AuthType.Basic)
+            {
                 var tempDomainName = new StringBuilder(100);
-                if (domainName != null && domainName.Length != 0) {
+                if (domainName != null && domainName.Length != 0)
+                {
                     tempDomainName.Append(domainName);
                     tempDomainName.Append("\\");
                 }
 
                 tempDomainName.Append(username);
                 error = Wldap32.ldap_simple_bind_s(_ldapHandle, tempDomainName.ToString(), password);
-            } else {
-                var cred = new SEC_WINNT_AUTH_IDENTITY_EX() {
+            }
+            else
+            {
+                var cred = new SEC_WINNT_AUTH_IDENTITY_EX()
+                {
                     version = Wldap32.SEC_WINNT_AUTH_IDENTITY_VERSION,
                     length = Marshal.SizeOf(typeof(SEC_WINNT_AUTH_IDENTITY_EX)),
                     flags = Wldap32.SEC_WINNT_AUTH_IDENTITY_UNICODE
                 };
-                if (AuthType == AuthType.Kerberos) {
+                if (AuthType == AuthType.Kerberos)
+                {
                     cred.packageList = Wldap32.MICROSOFT_KERBEROS_NAME_W;
                     cred.packageListLength = cred.packageList.Length;
                 }
 
-                if (tempCredential != null) {
+                if (tempCredential != null)
+                {
                     cred.user = username;
                     cred.userLength = (username == null ? 0 : username.Length);
                     cred.domain = domainName;
@@ -938,7 +1173,8 @@ namespace System.DirectoryServices.Protocols {
                 }
 
                 BindMethod method = BindMethod.LDAP_AUTH_NEGOTIATE;
-                switch (AuthType) {
+                switch (AuthType)
+                {
                     case AuthType.Negotiate:
                         method = BindMethod.LDAP_AUTH_NEGOTIATE;
                         break;
@@ -965,22 +1201,31 @@ namespace System.DirectoryServices.Protocols {
                         break;
                 }
 
-                if (tempCredential == null && AuthType == AuthType.External) {
+                if (tempCredential == null && AuthType == AuthType.External)
+                {
                     error = Wldap32.ldap_bind_s(_ldapHandle, null, null, method);
-                } else {
+                }
+                else
+                {
                     error = Wldap32.ldap_bind_s(_ldapHandle, null, cred, method);
                 }
             }
 
             // Failed, throw exception.
-            if (error != (int)ResultCode.Success) {
-                if (Utility.IsResultCode((ResultCode)error)) {
+            if (error != (int)ResultCode.Success)
+            {
+                if (error < 0) error = Math.Abs(error) + 80; //NOTE: *nix
+                if (Utility.IsResultCode((ResultCode)error))
+                {
                     string errorMessage = OperationErrorMappings.MapResultCode(error);
                     throw new DirectoryOperationException(null, errorMessage);
-                } else if (Utility.IsLdapError((LdapError)error)) {
+                }
+                else if (Utility.IsLdapError((LdapError)error))
+                {
                     string errorMessage = LdapErrorMappings.MapResultCode(error);
                     string serverErrorMessage = SessionOptions.ServerErrorMessage;
-                    if (!string.IsNullOrEmpty(serverErrorMessage)) {
+                    if (!string.IsNullOrEmpty(serverErrorMessage))
+                    {
                         throw new LdapException(error, errorMessage, serverErrorMessage);
                     }
 
@@ -997,23 +1242,29 @@ namespace System.DirectoryServices.Protocols {
             _needRebind = false;
         }
 
-        public void Dispose() {
+        public void Dispose()
+        {
             Dispose(true);
             GC.SuppressFinalize(this);
         }
 
-        protected virtual void Dispose(bool disposing) {
-            if (disposing) {
+        protected virtual void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
                 // We need to remove the handle from the handle table.
-                lock (s_objectLock) {
-                    if (_ldapHandle != null) {
+                lock (s_objectLock)
+                {
+                    if (_ldapHandle != null)
+                    {
                         s_handleTable.Remove(_ldapHandle.DangerousGetHandle());
                     }
                 }
             }
 
             // Close the ldap connection.
-            if (_needDispose && _ldapHandle != null && !_ldapHandle.IsInvalid) {
+            if (_needDispose && _ldapHandle != null && !_ldapHandle.IsInvalid)
+            {
                 _ldapHandle.Dispose();
             }
 
@@ -1021,29 +1272,39 @@ namespace System.DirectoryServices.Protocols {
             _disposed = true;
         }
 
-        internal LdapControl[] BuildControlArray(DirectoryControlCollection controls, bool serverControl) {
+        internal LdapControl[] BuildControlArray(DirectoryControlCollection controls, bool serverControl)
+        {
             LdapControl[] managedControls = null;
 
-            if (controls != null && controls.Count != 0) {
+            if (controls != null && controls.Count != 0)
+            {
                 var controlList = new ArrayList();
-                foreach (DirectoryControl col in controls) {
-                    if (serverControl == true) {
-                        if (col.ServerSide) {
+                foreach (DirectoryControl col in controls)
+                {
+                    if (serverControl == true)
+                    {
+                        if (col.ServerSide)
+                        {
                             controlList.Add(col);
                         }
-                    } else if (!col.ServerSide) {
+                    }
+                    else if (!col.ServerSide)
+                    {
                         controlList.Add(col);
                     }
                 }
 
-                if (controlList.Count != 0) {
+                if (controlList.Count != 0)
+                {
                     int count = controlList.Count;
                     managedControls = new LdapControl[count];
 
-                    for (int i = 0; i < count; i++) {
-                        managedControls[i] = new LdapControl() {
+                    for (int i = 0; i < count; i++)
+                    {
+                        managedControls[i] = new LdapControl()
+                        {
                             // Get the control type.
-                            ldctl_oid = StringToHGlobal(((DirectoryControl)controlList[i]).Type),
+                            ldctl_oid = Encoding.StringToHGlobal(((DirectoryControl)controlList[i]).Type),
 
                             // Get the control cricality.
                             ldctl_iscritical = ((DirectoryControl)controlList[i]).IsCritical
@@ -1052,14 +1313,19 @@ namespace System.DirectoryServices.Protocols {
                         // Get the control value.
                         DirectoryControl tempControl = (DirectoryControl)controlList[i];
                         byte[] byteControlValue = tempControl.GetValue();
-                        if (byteControlValue == null || byteControlValue.Length == 0) {
+                        if (byteControlValue == null || byteControlValue.Length == 0)
+                        {
                             // Treat the control value as null.
-                            managedControls[i].ldctl_value = new berval {
+                            managedControls[i].ldctl_value = new berval
+                            {
                                 bv_len = 0,
                                 bv_val = IntPtr.Zero
                             };
-                        } else {
-                            managedControls[i].ldctl_value = new berval {
+                        }
+                        else
+                        {
+                            managedControls[i].ldctl_value = new berval
+                            {
                                 bv_len = byteControlValue.Length,
                                 bv_val = Marshal.AllocHGlobal(Marshal.SizeOf(typeof(byte)) * byteControlValue.Length)
                             };
@@ -1072,36 +1338,48 @@ namespace System.DirectoryServices.Protocols {
             return managedControls;
         }
 
-        internal LdapMod[] BuildAttributes(CollectionBase directoryAttributes, ArrayList ptrToFree) {
+        internal LdapMod[] BuildAttributes(CollectionBase directoryAttributes, ArrayList ptrToFree)
+        {
             LdapMod[] attributes = null;
 
-            if (directoryAttributes != null && directoryAttributes.Count != 0) {
+            if (directoryAttributes != null && directoryAttributes.Count != 0)
+            {
                 var encoder = new UTF8Encoding();
                 DirectoryAttributeModificationCollection modificationCollection = null;
                 DirectoryAttributeCollection attributeCollection = null;
 
-                if (directoryAttributes is DirectoryAttributeModificationCollection) {
+                if (directoryAttributes is DirectoryAttributeModificationCollection)
+                {
                     modificationCollection = (DirectoryAttributeModificationCollection)directoryAttributes;
-                } else {
+                }
+                else
+                {
                     attributeCollection = (DirectoryAttributeCollection)directoryAttributes;
                 }
 
                 attributes = new LdapMod[directoryAttributes.Count];
-                for (int i = 0; i < directoryAttributes.Count; i++) {
+                for (int i = 0; i < directoryAttributes.Count; i++)
+                {
                     // Get the managed attribute first.
                     DirectoryAttribute modAttribute = null;
-                    if (attributeCollection != null) {
+                    if (attributeCollection != null)
+                    {
                         modAttribute = attributeCollection[i];
-                    } else {
+                    }
+                    else
+                    {
                         modAttribute = modificationCollection[i];
                     }
 
                     attributes[i] = new LdapMod();
 
                     // Write the operation type.
-                    if (modAttribute is DirectoryAttributeModification) {
+                    if (modAttribute is DirectoryAttributeModification)
+                    {
                         attributes[i].type = (int)((DirectoryAttributeModification)modAttribute).Operation;
-                    } else {
+                    }
+                    else
+                    {
                         attributes[i].type = (int)DirectoryAttributeOperation.Add;
                     }
 
@@ -1109,25 +1387,33 @@ namespace System.DirectoryServices.Protocols {
                     attributes[i].type |= LDAP_MOD_BVALUES;
 
                     // Write the attribute name.
-                    attributes[i].attribute =StringToHGlobal(modAttribute.Name);
+                    attributes[i].attribute = Encoding.StringToHGlobal(modAttribute.Name);
 
                     // Write the values.
                     int valuesCount = 0;
                     berval[] berValues = null;
-                    if (modAttribute.Count > 0) {
+                    if (modAttribute.Count > 0)
+                    {
                         valuesCount = modAttribute.Count;
                         berValues = new berval[valuesCount];
-                        for (int j = 0; j < valuesCount; j++) {
+                        for (int j = 0; j < valuesCount; j++)
+                        {
                             byte[] byteArray = null;
-                            if (modAttribute[j] is string) {
+                            if (modAttribute[j] is string)
+                            {
                                 byteArray = encoder.GetBytes((string)modAttribute[j]);
-                            } else if (modAttribute[j] is Uri) {
+                            }
+                            else if (modAttribute[j] is Uri)
+                            {
                                 byteArray = encoder.GetBytes(((Uri)modAttribute[j]).ToString());
-                            } else {
+                            }
+                            else
+                            {
                                 byteArray = (byte[])modAttribute[j];
                             }
 
-                            berValues[j] = new berval() {
+                            berValues[j] = new berval()
+                            {
                                 bv_len = byteArray.Length,
                                 bv_val = Marshal.AllocHGlobal(byteArray.Length)
                             };
@@ -1144,7 +1430,8 @@ namespace System.DirectoryServices.Protocols {
                     IntPtr tempPtr = IntPtr.Zero;
 
                     int m = 0;
-                    for (m = 0; m < valuesCount; m++) {
+                    for (m = 0; m < valuesCount; m++)
+                    {
                         controlPtr = Marshal.AllocHGlobal(structSize);
 
                         // Need to free the memory allocated on the heap when we are done.
@@ -1161,8 +1448,10 @@ namespace System.DirectoryServices.Protocols {
             return attributes;
         }
 
-        internal DirectoryResponse ConstructResponse(int messageId, LdapOperation operation, ResultAll resultType, TimeSpan requestTimeOut, bool exceptionOnTimeOut) {
-            var timeout = new LDAP_TIMEVAL() {
+        internal DirectoryResponse ConstructResponse(int messageId, LdapOperation operation, ResultAll resultType, TimeSpan requestTimeOut, bool exceptionOnTimeOut)
+        {
+            var timeout = new LDAP_TIMEVAL()
+            {
                 tv_sec = (int)(requestTimeOut.Ticks / TimeSpan.TicksPerSecond)
             };
             IntPtr ldapResult = IntPtr.Zero;
@@ -1176,12 +1465,14 @@ namespace System.DirectoryServices.Protocols {
             bool needAbandon = true;
 
             // processing for the partial results retrieval
-            if (resultType != ResultAll.LDAP_MSG_ALL) {
+            if (resultType != ResultAll.LDAP_MSG_ALL)
+            {
                 // we need to have 0 timeout as we are polling for the results and don't want to wait
                 timeout.tv_sec = 0;
                 timeout.tv_usec = 0;
 
-                if (resultType == ResultAll.LDAP_MSG_POLLINGALL) {
+                if (resultType == ResultAll.LDAP_MSG_POLLINGALL)
+                {
                     resultType = ResultAll.LDAP_MSG_ALL;
                 }
 
@@ -1190,10 +1481,12 @@ namespace System.DirectoryServices.Protocols {
             }
 
             int error = Wldap32.ldap_result(_ldapHandle, messageId, (int)resultType, timeout, ref ldapResult);
-            if (error != -1 && error != 0) {
+            if (error != -1 && error != 0)
+            {
                 // parsing the result
                 int serverError = 0;
-                try {
+                try
+                {
                     int resultError = 0;
                     string responseDn = null;
                     string responseMessage = null;
@@ -1201,39 +1494,57 @@ namespace System.DirectoryServices.Protocols {
                     DirectoryControl[] responseControl = null;
 
                     // ldap_parse_result skips over messages of type LDAP_RES_SEARCH_ENTRY and LDAP_RES_SEARCH_REFERRAL
-                    if (error != (int)LdapResult.LDAP_RES_SEARCH_ENTRY && error != (int)LdapResult.LDAP_RES_REFERRAL) {
+                    if (error != (int)LdapResult.LDAP_RES_SEARCH_ENTRY && error != (int)LdapResult.LDAP_RES_REFERRAL)
+                    {
                         resultError = ConstructParsedResult(ldapResult, ref serverError, ref responseDn, ref responseMessage, ref responseReferral, ref responseControl);
                     }
 
-                    if (resultError == 0) {
+                    if (resultError == 0)
+                    {
                         resultError = serverError;
 
-                        if (error == (int)LdapResult.LDAP_RES_ADD) {
+                        if (error == (int)LdapResult.LDAP_RES_ADD)
+                        {
                             response = new AddResponse(responseDn, responseControl, (ResultCode)resultError, responseMessage, responseReferral);
-                        } else if (error == (int)LdapResult.LDAP_RES_MODIFY) {
+                        }
+                        else if (error == (int)LdapResult.LDAP_RES_MODIFY)
+                        {
                             response = new ModifyResponse(responseDn, responseControl, (ResultCode)resultError, responseMessage, responseReferral);
-                        } else if (error == (int)LdapResult.LDAP_RES_DELETE) {
+                        }
+                        else if (error == (int)LdapResult.LDAP_RES_DELETE)
+                        {
                             response = new DeleteResponse(responseDn, responseControl, (ResultCode)resultError, responseMessage, responseReferral);
-                        } else if (error == (int)LdapResult.LDAP_RES_MODRDN) {
+                        }
+                        else if (error == (int)LdapResult.LDAP_RES_MODRDN)
+                        {
                             response = new ModifyDNResponse(responseDn, responseControl, (ResultCode)resultError, responseMessage, responseReferral);
-                        } else if (error == (int)LdapResult.LDAP_RES_COMPARE) {
+                        }
+                        else if (error == (int)LdapResult.LDAP_RES_COMPARE)
+                        {
                             response = new CompareResponse(responseDn, responseControl, (ResultCode)resultError, responseMessage, responseReferral);
-                        } else if (error == (int)LdapResult.LDAP_RES_EXTENDED) {
+                        }
+                        else if (error == (int)LdapResult.LDAP_RES_EXTENDED)
+                        {
                             response = new ExtendedResponse(responseDn, responseControl, (ResultCode)resultError, responseMessage, responseReferral);
-                            if (resultError == (int)ResultCode.Success) {
+                            if (resultError == (int)ResultCode.Success)
+                            {
                                 resultError = Wldap32.ldap_parse_extended_result(_ldapHandle, ldapResult, ref requestName, ref requestValue, 0 /*not free it*/);
-                                if (resultError == 0) {
+                                if (resultError == 0)
+                                {
                                     string name = null;
-                                    if (requestName != IntPtr.Zero) {
-                                        name = PtrToString(requestName);
+                                    if (requestName != IntPtr.Zero)
+                                    {
+                                        name = Encoding.PtrToString(requestName);
                                     }
 
                                     berval val = null;
                                     byte[] requestValueArray = null;
-                                    if (requestValue != IntPtr.Zero) {
+                                    if (requestValue != IntPtr.Zero)
+                                    {
                                         val = new berval();
                                         Marshal.PtrToStructure(requestValue, val);
-                                        if (val.bv_len != 0 && val.bv_val != IntPtr.Zero) {
+                                        if (val.bv_len != 0 && val.bv_val != IntPtr.Zero)
+                                        {
                                             requestValueArray = new byte[val.bv_len];
                                             Marshal.Copy(val.bv_val, requestValueArray, 0, val.bv_len);
                                         }
@@ -1243,13 +1554,16 @@ namespace System.DirectoryServices.Protocols {
                                     ((ExtendedResponse)response).ResponseValue = requestValueArray;
                                 }
                             }
-                        } else if (error == (int)LdapResult.LDAP_RES_SEARCH_RESULT ||
-                                 error == (int)LdapResult.LDAP_RES_SEARCH_ENTRY ||
-                                 error == (int)LdapResult.LDAP_RES_REFERRAL) {
+                        }
+                        else if (error == (int)LdapResult.LDAP_RES_SEARCH_RESULT ||
+                               error == (int)LdapResult.LDAP_RES_SEARCH_ENTRY ||
+                               error == (int)LdapResult.LDAP_RES_REFERRAL)
+                        {
                             response = new SearchResponse(responseDn, responseControl, (ResultCode)resultError, responseMessage, responseReferral);
 
                             //set the flag here so our partial result processor knows whether the search is done or not
-                            if (error == (int)LdapResult.LDAP_RES_SEARCH_RESULT) {
+                            if (error == (int)LdapResult.LDAP_RES_SEARCH_RESULT)
+                            {
                                 ((SearchResponse)response).searchDone = true;
                             }
 
@@ -1260,9 +1574,11 @@ namespace System.DirectoryServices.Protocols {
                             entryMessage = Wldap32.ldap_first_entry(_ldapHandle, ldapResult);
 
                             int entrycount = 0;
-                            while (entryMessage != IntPtr.Zero) {
+                            while (entryMessage != IntPtr.Zero)
+                            {
                                 SearchResultEntry entry = ConstructEntry(entryMessage);
-                                if (entry != null) {
+                                if (entry != null)
+                                {
                                     searchResultEntries.Add(entry);
                                 }
 
@@ -1273,64 +1589,86 @@ namespace System.DirectoryServices.Protocols {
                             // Parse the reference.
                             IntPtr referenceMessage = Wldap32.ldap_first_reference(_ldapHandle, ldapResult);
 
-                            while (referenceMessage != IntPtr.Zero) {
+                            while (referenceMessage != IntPtr.Zero)
+                            {
                                 SearchResultReference reference = ConstructReference(referenceMessage);
-                                if (reference != null) {
+                                if (reference != null)
+                                {
                                     searchResultReferences.Add(reference);
                                 }
 
                                 referenceMessage = Wldap32.ldap_next_reference(_ldapHandle, referenceMessage);
                             }
 
-                              ((SearchResponse)response).Entries = searchResultEntries;
+                            ((SearchResponse)response).Entries = searchResultEntries;
                             ((SearchResponse)response).References = searchResultReferences;
                         }
 
-                        if (resultError != (int)ResultCode.Success && resultError != (int)ResultCode.CompareFalse && resultError != (int)ResultCode.CompareTrue && resultError != (int)ResultCode.Referral && resultError != (int)ResultCode.ReferralV2) {
+                        if (resultError != (int)ResultCode.Success && resultError != (int)ResultCode.CompareFalse && resultError != (int)ResultCode.CompareTrue && resultError != (int)ResultCode.Referral && resultError != (int)ResultCode.ReferralV2)
+                        {
                             // Throw operation exception.
-                            if (Utility.IsResultCode((ResultCode)resultError)) {
+                            if (Utility.IsResultCode((ResultCode)resultError))
+                            {
                                 throw new DirectoryOperationException(response, OperationErrorMappings.MapResultCode(resultError));
-                            } else {
+                            }
+                            else
+                            {
                                 // This should not occur.
                                 throw new DirectoryOperationException(response);
                             }
                         }
 
                         return response;
-                    } else {
+                    }
+                    else
+                    {
                         // Fall through, throw the exception beow.
                         error = resultError;
                     }
-                } finally {
-                    if (requestName != IntPtr.Zero) {
+                }
+                finally
+                {
+                    if (requestName != IntPtr.Zero)
+                    {
                         Wldap32.ldap_memfree(requestName);
                     }
 
-                    if (requestValue != IntPtr.Zero) {
+                    if (requestValue != IntPtr.Zero)
+                    {
                         Wldap32.ldap_memfree(requestValue);
                     }
 
-                    if (ldapResult != IntPtr.Zero) {
+                    if (ldapResult != IntPtr.Zero)
+                    {
                         Wldap32.ldap_msgfree(ldapResult);
                     }
                 }
-            } else {
+            }
+            else
+            {
                 // ldap_result failed
-                if (error == 0) {
-                    if (exceptionOnTimeOut) {
+                if (error == 0)
+                {
+                    if (exceptionOnTimeOut)
+                    {
                         // Client side timeout.
                         error = (int)LdapError.TimeOut;
-                    } else {
+                    }
+                    else
+                    {
                         // If we don't throw exception on time out (notification search for example), we
                         // just return an empty response.
                         return null;
                     }
-                } else {
+                }
+                else
+                {
                     error = Wldap32.LdapGetLastError();
                 }
 
                 // Abandon the request.
-                if (needAbandon) {
+                if (needAbandon)
+                {
                     Wldap32.ldap_abandon(_ldapHandle, messageId);
                 }
             }
@@ -1339,51 +1677,60 @@ namespace System.DirectoryServices.Protocols {
             throw ConstructException(error, operation);
         }
 
-        internal unsafe int ConstructParsedResult(IntPtr ldapResult, ref int serverError, ref string responseDn, ref string responseMessage, ref Uri[] responseReferral, ref DirectoryControl[] responseControl) {
+        internal unsafe int ConstructParsedResult(IntPtr ldapResult, ref int serverError, ref string responseDn, ref string responseMessage, ref Uri[] responseReferral, ref DirectoryControl[] responseControl)
+        {
             IntPtr dn = IntPtr.Zero;
             IntPtr message = IntPtr.Zero;
             IntPtr referral = IntPtr.Zero;
             IntPtr control = IntPtr.Zero;
 
-            try {
+            try
+            {
                 int resultError = Wldap32.ldap_parse_result(_ldapHandle, ldapResult, ref serverError, ref dn, ref message, ref referral, ref control, 0 /* not free it */);
 
-                if (resultError == 0) {
+                if (resultError == 0)
+                {
                     // Parse the dn.
-                    responseDn = PtrToString(dn);
+                    responseDn = Encoding.PtrToString(dn);
 
                     // Parse the message.
-                    responseMessage = PtrToString(message);
+                    responseMessage = Encoding.PtrToString(message);
 
                     // Parse the referral.
-                    if (referral != IntPtr.Zero) {
+                    if (referral != IntPtr.Zero)
+                    {
                         char** tempPtr = (char**)referral;
                         char* singleReferral = tempPtr[0];
                         int i = 0;
                         var referralList = new ArrayList();
-                        while (singleReferral != null) {
-                            string s = PtrToString((IntPtr)singleReferral);
+                        while (singleReferral != null)
+                        {
+                            string s = Encoding.PtrToString((IntPtr)singleReferral);
                             referralList.Add(s);
 
                             i++;
                             singleReferral = tempPtr[i];
                         }
 
-                        if (referralList.Count > 0) {
+                        if (referralList.Count > 0)
+                        {
                             responseReferral = new Uri[referralList.Count];
-                            for (int j = 0; j < referralList.Count; j++) {
+                            for (int j = 0; j < referralList.Count; j++)
+                            {
                                 responseReferral[j] = new Uri((string)referralList[j]);
                             }
                         }
                     }
 
                     // Parse the control.
-                    if (control != IntPtr.Zero) {
+                    if (control != IntPtr.Zero)
+                    {
                         int i = 0;
                         IntPtr tempControlPtr = control;
                         IntPtr singleControl = Marshal.ReadIntPtr(tempControlPtr, 0);
                         var controlList = new ArrayList();
-                        while (singleControl != IntPtr.Zero) {
+                        while (singleControl != IntPtr.Zero)
+                        {
                             DirectoryControl directoryControl = ConstructControl(singleControl);
                             controlList.Add(directoryControl);
 
@@ -1394,47 +1741,60 @@ namespace System.DirectoryServices.Protocols {
                         responseControl = new DirectoryControl[controlList.Count];
                         controlList.CopyTo(responseControl);
                     }
-                } else {
+                }
+                else
+                {
                     // we need to take care of one special case, when can't connect to the server, ldap_parse_result fails with local error 
-                    if (resultError == (int)LdapError.LocalError) {
+                    if (resultError == (int)LdapError.LocalError)
+                    {
                         int tmpResult = Wldap32.ldap_result2error(_ldapHandle, ldapResult, 0 /* not free it */);
-                        if (tmpResult != 0) {
+                        if (tmpResult != 0)
+                        {
                             resultError = tmpResult;
                         }
                     }
                 }
 
                 return resultError;
-            } finally {
-                if (dn != IntPtr.Zero) {
+            }
+            finally
+            {
+                if (dn != IntPtr.Zero)
+                {
                     Wldap32.ldap_memfree(dn);
                 }
 
-                if (message != IntPtr.Zero) {
+                if (message != IntPtr.Zero)
+                {
                     Wldap32.ldap_memfree(message);
                 }
 
-                if (referral != IntPtr.Zero) {
+                if (referral != IntPtr.Zero)
+                {
                     Wldap32.ldap_value_free(referral);
                 }
 
-                if (control != IntPtr.Zero) {
+                if (control != IntPtr.Zero)
+                {
                     Wldap32.ldap_controls_free(control);
                 }
             }
         }
 
-        internal SearchResultEntry ConstructEntry(IntPtr entryMessage) {
+        internal SearchResultEntry ConstructEntry(IntPtr entryMessage)
+        {
             IntPtr dn = IntPtr.Zero;
             IntPtr attribute = IntPtr.Zero;
             IntPtr address = IntPtr.Zero;
 
-            try {
+            try
+            {
                 // Get the dn.
                 string entryDn = null;
                 dn = Wldap32.ldap_get_dn(_ldapHandle, entryMessage);
-                if (dn != IntPtr.Zero) {
-                    entryDn = PtrToString(dn);//Marshal.PtrToStringUni(dn);
+                if (dn != IntPtr.Zero)
+                {
+                    entryDn = Encoding.PtrToString(dn);//Marshal.PtrToStringUni(dn);
                     Wldap32.ldap_memfree(dn);
                     dn = IntPtr.Zero;
                 }
@@ -1446,7 +1806,8 @@ namespace System.DirectoryServices.Protocols {
                 attribute = Wldap32.ldap_first_attribute(_ldapHandle, entryMessage, ref address);
 
                 int tempcount = 0;
-                while (attribute != IntPtr.Zero) {
+                while (attribute != IntPtr.Zero)
+                {
                     DirectoryAttribute attr = ConstructAttribute(entryMessage, attribute);
                     attributes.Add(attr.Name, attr);
 
@@ -1455,45 +1816,57 @@ namespace System.DirectoryServices.Protocols {
                     attribute = Wldap32.ldap_next_attribute(_ldapHandle, entryMessage, address);
                 }
 
-                if (address != IntPtr.Zero) {
+                if (address != IntPtr.Zero)
+                {
                     Wldap32.ber_free(address, 0);
                     address = IntPtr.Zero;
                 }
 
                 return resultEntry;
-            } finally {
-                if (dn != IntPtr.Zero) {
+            }
+            finally
+            {
+                if (dn != IntPtr.Zero)
+                {
                     Wldap32.ldap_memfree(dn);
                 }
 
-                if (attribute != IntPtr.Zero) {
+                if (attribute != IntPtr.Zero)
+                {
                     Wldap32.ldap_memfree(attribute);
                 }
 
-                if (address != IntPtr.Zero) {
+                if (address != IntPtr.Zero)
+                {
                     Wldap32.ber_free(address, 0);
                 }
             }
         }
 
-        internal DirectoryAttribute ConstructAttribute(IntPtr entryMessage, IntPtr attributeName) {
-            var attribute = new DirectoryAttribute() {
+        internal DirectoryAttribute ConstructAttribute(IntPtr entryMessage, IntPtr attributeName)
+        {
+            var attribute = new DirectoryAttribute()
+            {
                 _isSearchResult = true
             };
 
-            string name = PtrToString(attributeName);
+            string name = Encoding.PtrToString(attributeName);
             attribute.Name = name;
 
             IntPtr valuesArray = Wldap32.ldap_get_values_len(_ldapHandle, entryMessage, name);
-            try {
-                if (valuesArray != IntPtr.Zero) {
+            try
+            {
+                if (valuesArray != IntPtr.Zero)
+                {
                     int count = 0;
                     IntPtr tempPtr = Marshal.ReadIntPtr(valuesArray, IntPtr.Size * count);
-                    while (tempPtr != IntPtr.Zero) {
+                    while (tempPtr != IntPtr.Zero)
+                    {
                         berval bervalue = new berval();
                         Marshal.PtrToStructure(tempPtr, bervalue);
                         byte[] byteArray = null;
-                        if (bervalue.bv_len > 0 && bervalue.bv_val != IntPtr.Zero) {
+                        if (bervalue.bv_len > 0 && bervalue.bv_val != IntPtr.Zero)
+                        {
                             byteArray = new byte[bervalue.bv_len];
                             Marshal.Copy(bervalue.bv_val, byteArray, 0, bervalue.bv_len);
                             attribute.Add(byteArray);
@@ -1503,8 +1876,11 @@ namespace System.DirectoryServices.Protocols {
                         tempPtr = Marshal.ReadIntPtr(valuesArray, IntPtr.Size * count);
                     }
                 }
-            } finally {
-                if (valuesArray != IntPtr.Zero) {
+            }
+            finally
+            {
+                if (valuesArray != IntPtr.Zero)
+                {
                     Wldap32.ldap_value_free_len(valuesArray);
                 }
             }
@@ -1512,20 +1888,25 @@ namespace System.DirectoryServices.Protocols {
             return attribute;
         }
 
-        internal SearchResultReference ConstructReference(IntPtr referenceMessage) {
+        internal SearchResultReference ConstructReference(IntPtr referenceMessage)
+        {
             IntPtr referenceArray = IntPtr.Zero;
 
             int error = Wldap32.ldap_parse_reference(_ldapHandle, referenceMessage, ref referenceArray);
 
-            try {
-                if (error == 0) {
+            try
+            {
+                if (error == 0)
+                {
                     var referralList = new ArrayList();
                     IntPtr tempPtr = IntPtr.Zero;
                     int count = 0;
-                    if (referenceArray != IntPtr.Zero) {
+                    if (referenceArray != IntPtr.Zero)
+                    {
                         tempPtr = Marshal.ReadIntPtr(referenceArray, IntPtr.Size * count);
-                        while (tempPtr != IntPtr.Zero) {
-                            string s = PtrToString(tempPtr);
+                        while (tempPtr != IntPtr.Zero)
+                        {
+                            string s = Encoding.PtrToString(tempPtr);
                             referralList.Add(s);
 
                             count++;
@@ -1536,17 +1917,22 @@ namespace System.DirectoryServices.Protocols {
                         referenceArray = IntPtr.Zero;
                     }
 
-                    if (referralList.Count > 0) {
+                    if (referralList.Count > 0)
+                    {
                         Uri[] uris = new Uri[referralList.Count];
-                        for (int i = 0; i < referralList.Count; i++) {
+                        for (int i = 0; i < referralList.Count; i++)
+                        {
                             uris[i] = new Uri((string)referralList[i]);
                         }
 
                         return new SearchResultReference(uris);
                     }
                 }
-            } finally {
-                if (referenceArray != IntPtr.Zero) {
+            }
+            finally
+            {
+                if (referenceArray != IntPtr.Zero)
+                {
                     Wldap32.ldap_value_free(referenceArray);
                 }
             }
@@ -1554,33 +1940,52 @@ namespace System.DirectoryServices.Protocols {
             return null;
         }
 
-        private DirectoryException ConstructException(int error, LdapOperation operation) {
+        private DirectoryException ConstructException(int error, LdapOperation operation)
+        {
             DirectoryResponse response = null;
 
-            if (Utility.IsResultCode((ResultCode)error)) {
-                if (operation == LdapOperation.LdapAdd) {
+            if (Utility.IsResultCode((ResultCode)error))
+            {
+                if (operation == LdapOperation.LdapAdd)
+                {
                     response = new AddResponse(null, null, (ResultCode)error, OperationErrorMappings.MapResultCode(error), null);
-                } else if (operation == LdapOperation.LdapModify) {
+                }
+                else if (operation == LdapOperation.LdapModify)
+                {
                     response = new ModifyResponse(null, null, (ResultCode)error, OperationErrorMappings.MapResultCode(error), null);
-                } else if (operation == LdapOperation.LdapDelete) {
+                }
+                else if (operation == LdapOperation.LdapDelete)
+                {
                     response = new DeleteResponse(null, null, (ResultCode)error, OperationErrorMappings.MapResultCode(error), null);
-                } else if (operation == LdapOperation.LdapModifyDn) {
+                }
+                else if (operation == LdapOperation.LdapModifyDn)
+                {
                     response = new ModifyDNResponse(null, null, (ResultCode)error, OperationErrorMappings.MapResultCode(error), null);
-                } else if (operation == LdapOperation.LdapCompare) {
+                }
+                else if (operation == LdapOperation.LdapCompare)
+                {
                     response = new CompareResponse(null, null, (ResultCode)error, OperationErrorMappings.MapResultCode(error), null);
-                } else if (operation == LdapOperation.LdapSearch) {
+                }
+                else if (operation == LdapOperation.LdapSearch)
+                {
                     response = new SearchResponse(null, null, (ResultCode)error, OperationErrorMappings.MapResultCode(error), null);
-                } else if (operation == LdapOperation.LdapExtendedRequest) {
+                }
+                else if (operation == LdapOperation.LdapExtendedRequest)
+                {
                     response = new ExtendedResponse(null, null, (ResultCode)error, OperationErrorMappings.MapResultCode(error), null);
                 }
 
                 string errorMessage = OperationErrorMappings.MapResultCode(error);
                 return new DirectoryOperationException(response, errorMessage);
-            } else {
-                if (Utility.IsLdapError((LdapError)error)) {
+            }
+            else
+            {
+                if (Utility.IsLdapError((LdapError)error))
+                {
                     string errorMessage = LdapErrorMappings.MapResultCode(error);
                     string serverErrorMessage = SessionOptions.ServerErrorMessage;
-                    if (!string.IsNullOrEmpty(serverErrorMessage)) {
+                    if (!string.IsNullOrEmpty(serverErrorMessage))
+                    {
                         throw new LdapException(error, errorMessage, serverErrorMessage);
                     }
 
@@ -1591,12 +1996,13 @@ namespace System.DirectoryServices.Protocols {
             }
         }
 
-        private DirectoryControl ConstructControl(IntPtr controlPtr) {
+        private DirectoryControl ConstructControl(IntPtr controlPtr)
+        {
             LdapControl control = new LdapControl();
             Marshal.PtrToStructure(controlPtr, control);
 
             Debug.Assert(control.ldctl_oid != IntPtr.Zero);
-            string controlType = PtrToString(control.ldctl_oid);
+            string controlType = Encoding.PtrToString(control.ldctl_oid);
 
             byte[] bytes = new byte[control.ldctl_value.bv_len];
             Marshal.Copy(control.ldctl_value.bv_val, bytes, 0, control.ldctl_value.bv_len);
@@ -1606,19 +2012,30 @@ namespace System.DirectoryServices.Protocols {
             return new DirectoryControl(controlType, bytes, criticality, true);
         }
 
-        private bool SameCredential(NetworkCredential oldCredential, NetworkCredential newCredential) {
-            if (oldCredential == null && newCredential == null) {
+        private bool SameCredential(NetworkCredential oldCredential, NetworkCredential newCredential)
+        {
+            if (oldCredential == null && newCredential == null)
+            {
                 return true;
-            } else if (oldCredential == null && newCredential != null) {
+            }
+            else if (oldCredential == null && newCredential != null)
+            {
                 return false;
-            } else if (oldCredential != null && newCredential == null) {
+            }
+            else if (oldCredential != null && newCredential == null)
+            {
                 return false;
-            } else {
+            }
+            else
+            {
                 if (oldCredential.Domain == newCredential.Domain &&
                     oldCredential.UserName == newCredential.UserName &&
-                    oldCredential.Password == newCredential.Password) {
+                    oldCredential.Password == newCredential.Password)
+                {
                     return true;
-                } else {
+                }
+                else
+                {
                     return false;
                 }
             }
