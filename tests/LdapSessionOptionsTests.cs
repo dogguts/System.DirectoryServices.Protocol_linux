@@ -10,6 +10,8 @@ namespace System.DirectoryServices.Protocols.Tests
 {
     public class LdapSessionOptionsTests
     {
+        //TODO: LDAP_OPT_REFERRALS; extended by Microsoft
+        // |-> : a zero value means OFF and any non-zero value means ON.  By default, this option is ON 
         [Theory]
         [InlineData(ReferralChasingOptions.None)]
         [InlineData(ReferralChasingOptions.External)]
@@ -46,6 +48,7 @@ namespace System.DirectoryServices.Protocols.Tests
             Assert.Throws<ObjectDisposedException>(() => connection.SessionOptions.ReferralChasing = ReferralChasingOptions.All);
         }
 
+        //TODO: LDAP_OPT_SSL; Microsoft-specific 
         [Theory]
         [InlineData(true)]
         [InlineData(false)]
@@ -71,6 +74,7 @@ namespace System.DirectoryServices.Protocols.Tests
             Assert.Throws<ObjectDisposedException>(() => connection.SessionOptions.SecureSocketLayer = true);
         }
 
+        //TODO: LDAP_OPT_REFERRAL_HOP_LIMIT; not supported by openldap. also not in c-ldap-api draft
         [Fact]
         public void ReferralHopLimit_Set_GetReturnsExpected()
         {
@@ -118,7 +122,7 @@ namespace System.DirectoryServices.Protocols.Tests
                 Assert.Equal(2, options.ProtocolVersion);
             }
         }
-        
+
         [Theory]
         [InlineData(-1)]
         [InlineData(0)]
@@ -141,13 +145,14 @@ namespace System.DirectoryServices.Protocols.Tests
             Assert.Throws<ObjectDisposedException>(() => connection.SessionOptions.ProtocolVersion = 10);
         }
 
+        //TODO: LDAP_OPT_HOST_NAME: openLdap returns HostName & Default port (389).  Windows doesn't!?
         [Fact]
         public void HostName_Set_GetReturnsExpected()
         {
             using (var connection = new LdapConnection("server"))
             {
                 LdapSessionOptions options = connection.SessionOptions;
-                Assert.Null(options.HostName);
+                Assert.Null(options.HostName); //TODO: will fail with openLdap/*nix, "ldap_init" sets LDAP_OPT_HOST_NAME, so HostName=="server:389"
 
                 options.HostName = "HostName";
                 Assert.Equal("HostName", options.HostName);
@@ -167,6 +172,7 @@ namespace System.DirectoryServices.Protocols.Tests
             Assert.Throws<ObjectDisposedException>(() => connection.SessionOptions.HostName = null);
         }
 
+        //TODO: LDAP_OPT_DNSDOMAIN_NAME; Microsoft-specific
         [Fact]
         public void DomainName_Set_GetReturnsExpected()
         {
@@ -193,6 +199,7 @@ namespace System.DirectoryServices.Protocols.Tests
             Assert.Throws<ObjectDisposedException>(() => connection.SessionOptions.DomainName = null);
         }
 
+        //TODO: LDAP_OPT_GETDSNAME_FLAGS ; Microsoft-specific
         [Theory]
         [InlineData(LocatorFlags.AvoidSelf)]
         [InlineData(LocatorFlags.None - 1)]
@@ -218,6 +225,8 @@ namespace System.DirectoryServices.Protocols.Tests
             Assert.Throws<ObjectDisposedException>(() => connection.SessionOptions.LocatorFlag = LocatorFlags.AvoidSelf);
         }
 
+
+        //TODO: LDAP_OPT_HOST_REACHABLE; Microsoft-specific
         [Fact]
         public void HostReachable_Get_ReturnsTrue()
         {
@@ -237,6 +246,7 @@ namespace System.DirectoryServices.Protocols.Tests
             Assert.Throws<ObjectDisposedException>(() => connection.SessionOptions.HostReachable);
         }
 
+        //TODO: LDAP_OPT_PING_KEEP_ALIVE ; Microsoft-specific
         [Fact]
         public void PingKeepAliveTimeout_Set_GetReturnsExpected()
         {
@@ -271,6 +281,7 @@ namespace System.DirectoryServices.Protocols.Tests
             Assert.Throws<ObjectDisposedException>(() => connection.SessionOptions.PingKeepAliveTimeout = TimeSpan.Zero);
         }
 
+        //TODO: LDAP_OPT_PING_LIMIT; Microsoft-specific
         [Fact]
         public void PingLimit_Set_GetReturnsExpected()
         {
@@ -303,6 +314,7 @@ namespace System.DirectoryServices.Protocols.Tests
             Assert.Throws<ObjectDisposedException>(() => connection.SessionOptions.PingLimit = 10);
         }
 
+        //TODO: LDAP_OPT_PING_WAIT_TIME; Microsoft-specific
         [Fact]
         public void PingWaitTimeout_Set_GetReturnsExpected()
         {
@@ -337,6 +349,7 @@ namespace System.DirectoryServices.Protocols.Tests
             Assert.Throws<ObjectDisposedException>(() => connection.SessionOptions.PingWaitTimeout = TimeSpan.Zero);
         }
 
+        //TODO: LDAP_OPT_AUTO_RECONNECT; Microsoft-specific
         [Theory]
         [InlineData(true)]
         [InlineData(false)]
@@ -362,6 +375,7 @@ namespace System.DirectoryServices.Protocols.Tests
             Assert.Throws<ObjectDisposedException>(() => connection.SessionOptions.AutoReconnect = false);
         }
 
+        //TODO: LDAP_OPT_SSPI_FLAGS;  Microsoft-specific 
         [Theory]
         [InlineData(-1)]
         [InlineData(10)]
@@ -387,6 +401,7 @@ namespace System.DirectoryServices.Protocols.Tests
             Assert.Throws<ObjectDisposedException>(() => connection.SessionOptions.SspiFlag = 10);
         }
 
+        //TODO: LDAP_OPT_SSL_INFO;  Microsoft-specific 
         [Fact]
         public void SslInformation_GetNotStarted_ThrowsDirectoryOperationException()
         {
@@ -405,7 +420,7 @@ namespace System.DirectoryServices.Protocols.Tests
 
             Assert.Throws<ObjectDisposedException>(() => connection.SessionOptions.SslInformation);
         }
-
+        //TODO: LDAP_OPT_SECURITY_CONTEXT;  Microsoft-specific 
         [Fact]
         public void SecurityContext_GetNotStarted_ThrowsDirectoryOperationException()
         {
@@ -425,6 +440,7 @@ namespace System.DirectoryServices.Protocols.Tests
             Assert.Throws<ObjectDisposedException>(() => connection.SessionOptions.SecurityContext);
         }
 
+        //TODO: LDAP_OPT_SIGN;  Microsoft-specific 
         [Theory]
         [InlineData(true)]
         [InlineData(false)]
@@ -450,6 +466,7 @@ namespace System.DirectoryServices.Protocols.Tests
             Assert.Throws<ObjectDisposedException>(() => connection.SessionOptions.Signing = false);
         }
 
+        //TODO: LDAP_OPT_ENCRYPT; Microsoft-specific 
         [Theory]
         [InlineData(true)]
         [InlineData(false)]
@@ -475,6 +492,7 @@ namespace System.DirectoryServices.Protocols.Tests
             Assert.Throws<ObjectDisposedException>(() => connection.SessionOptions.Sealing = false);
         }
 
+        //TODO: (openldap)LDAP_OPT_X_SASL_MECH vs (wldap32) LDAP_OPT_SASL_METHOD 
         [Fact]
         public void SaslMethod_Set_ThrowsLdapException()
         {
@@ -497,6 +515,7 @@ namespace System.DirectoryServices.Protocols.Tests
             Assert.Throws<ObjectDisposedException>(() => connection.SessionOptions.SaslMethod = null);
         }
 
+        //TODO: LDAP_OPT_ROOTDSE_CACHE; Microsoft-specific
         [Theory]
         [InlineData(true)]
         [InlineData(false)]
@@ -522,6 +541,7 @@ namespace System.DirectoryServices.Protocols.Tests
             Assert.Throws<ObjectDisposedException>(() => connection.SessionOptions.RootDseCache = false);
         }
 
+        //TODO: LDAP_OPT_TCP_KEEPALIVE; microsoft specific (openldap/linux; LDAP_OPT_X_KEEPALIVE_*)
         [Theory]
         [InlineData(true)]
         [InlineData(false)]
@@ -547,6 +567,7 @@ namespace System.DirectoryServices.Protocols.Tests
             Assert.Throws<ObjectDisposedException>(() => connection.SessionOptions.TcpKeepAlive = false);
         }
 
+        //TODO: LDAP_OPT_SEND_TIMEOUT;  Microsoft-specific 
         [Fact]
         public void SendTimeout_Set_GetReturnsExpected()
         {
@@ -594,6 +615,7 @@ namespace System.DirectoryServices.Protocols.Tests
             }
         }
 
+        //TODO: LDAP_OPT_REFERRAL_CALLBACK; Microsoft-specific
         [Fact]
         public void ReferralCallback_Set_GetReturnsExpected()
         {
@@ -624,6 +646,7 @@ namespace System.DirectoryServices.Protocols.Tests
             Assert.Throws<ObjectDisposedException>(() => connection.SessionOptions.ReferralCallback = null);
         }
 
+        //TODO: Certificates; later
         [Fact]
         public void QueryClientCertificate_Set_GetReturnsExpected()
         {
@@ -652,6 +675,7 @@ namespace System.DirectoryServices.Protocols.Tests
             Assert.Throws<ObjectDisposedException>(() => connection.SessionOptions.QueryClientCertificate = null);
         }
 
+        //TODO: LDAP_OPT_SERVER_CERTIFICATE; Microsoft-specific
         [Fact]
         public void VerifyServerCertificate_Set_GetReturnsExpected()
         {

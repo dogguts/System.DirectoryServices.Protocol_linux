@@ -7,10 +7,42 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <InvariantGlobalization>true</InvariantGlobalization>
     <EnableDefaultEmbeddedResourceItems>false</EnableDefaultEmbeddedResourceItems>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <TargetsUnix>true</TargetsUnix>
   </PropertyGroup>
+
+  <ItemGroup Condition="'$(TargetGroup)' != 'netstandard'">
+    <Compile Include="System\DirectoryServices\Protocols\common\AuthTypes.cs" />
+    <Compile Include="System\DirectoryServices\Protocols\common\BerConverter.cs" />
+    <Compile Include="System\DirectoryServices\Protocols\common\DereferenceAlias.cs" />
+    <Compile Include="System\DirectoryServices\Protocols\common\DirectoryAttribute.cs" />
+    <Compile Include="System\DirectoryServices\Protocols\common\DirectoryAttributeOperation.cs" />
+    <Compile Include="System\DirectoryServices\Protocols\common\DirectoryConnection.cs" />
+    <Compile Include="System\DirectoryServices\Protocols\common\DirectoryControl.cs" />
+    <Compile Include="System\DirectoryServices\Protocols\common\DirectoryException.cs" />
+    <Compile Include="System\DirectoryServices\Protocols\common\DirectoryIdentifier.cs" />
+    <Compile Include="System\DirectoryServices\Protocols\common\DirectoryOperation.cs" />
+    <Compile Include="System\DirectoryServices\Protocols\common\DirectoryRequest.cs" />
+    <Compile Include="System\DirectoryServices\Protocols\common\DirectoryResponse.cs" />
+    <Compile Include="System\DirectoryServices\Protocols\common\PartialResultsCollection.cs" />
+    <Compile Include="System\DirectoryServices\Protocols\common\ReferralChasingOption.cs" />
+    <Compile Include="System\DirectoryServices\Protocols\common\ResultCode.cs" />
+    <Compile Include="System\DirectoryServices\Protocols\common\SearchResults.cs" />
+    <Compile Include="System\DirectoryServices\Protocols\common\SearchScope.cs" />
+    <Compile Include="System\DirectoryServices\Protocols\common\utils.cs" />
+    <Compile Include="System\DirectoryServices\Protocols\ldap\LdapAsyncResult.cs" />
+    <Compile Include="System\DirectoryServices\Protocols\ldap\LdapConnection.cs" />
+    <Compile Include="System\DirectoryServices\Protocols\ldap\LdapDirectoryIdentifier.cs" />
+    <Compile Include="System\DirectoryServices\Protocols\ldap\LdapException.cs" />
+    <Compile Include="System\DirectoryServices\Protocols\ldap\LdapPartialResultsProcessor.cs" />
+    <Compile Include="System\DirectoryServices\Protocols\ldap\LdapSessionOptions.cs" />
+    <Compile Include="System\DirectoryServices\Protocols\ldap\SafeHandles.cs" />
+    <Compile Include="System\DirectoryServices\Protocols\ldap\Wldap32UnsafeMethods.cs" />
+  </ItemGroup>
 
   <ItemGroup>
     <EmbeddedResource Include="Resources/Strings.resx" />
+    <Compile Include="Resources/Strings.Designer.cs" />
   </ItemGroup>
 
   <ItemGroup>
@@ -19,6 +51,19 @@
     <PackageReference Include="System.Security.Principal.Windows" Version="4.5.0"/>
   </ItemGroup>
 
+  <ItemGroup Condition=" '$(TargetsUnix)' == 'true' ">
+    <Compile Include="System/DirectoryServices/Protocols/common/encoding.Unix.cs" />
+    <Compile Include="System/DirectoryServices/Protocols/ldap/LdapSessionOptions.Unix.cs" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(TargetsWindows)' == 'true'">
+    <Compile Include="System/DirectoryServices/Protocols/common/encoding.Windows.cs" />
+    <Compile Include="System/DirectoryServices/Protocols/ldap/LdapSessionOptions.Windows.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="Program.cs" />
+  </ItemGroup>
 
   <ItemGroup>
     <!--DotNetCliToolReference Include="Microsoft.Net.Sdk"   /-->

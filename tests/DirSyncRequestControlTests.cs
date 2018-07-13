@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+using System.Linq;
 using Xunit;
 
 namespace System.DirectoryServices.Protocols.Tests
@@ -43,7 +44,7 @@ namespace System.DirectoryServices.Protocols.Tests
 
         [Theory]
         [InlineData(null, DirectorySynchronizationOptions.None, new byte[] { 48, 132, 0, 0, 0, 10, 2, 1, 0, 2, 3, 16, 0, 0, 4, 0 })]
-        [InlineData(new byte[0], DirectorySynchronizationOptions.None - 1, new byte[] { 48, 132, 0, 0, 0, 13, 2, 4, 255, 255, 255, 255, 2, 3, 16, 0, 0, 4, 0 })]
+        [InlineData(new byte[0], DirectorySynchronizationOptions.None - 1, new byte[] { 0x30, 0x84, 0x00, 0x00, 0x00, 0x0A, 0x02, 0x01, 0xFF, 0x02, 0x03, 0x10, 0x00, 0x00, 0x04, 0x00 })]//NOTE: updated openldap
         [InlineData(new byte[] { 97, 98, 99 }, DirectorySynchronizationOptions.ObjectSecurity, new byte[] { 48, 132, 0, 0, 0, 13, 2, 1, 1, 2, 3, 16, 0, 0, 4, 3, 97, 98, 99 })]
         public void Ctor_Cookie_Options(byte[] cookie, DirectorySynchronizationOptions option, byte[] expectedValue)
         {
@@ -55,15 +56,15 @@ namespace System.DirectoryServices.Protocols.Tests
             Assert.True(control.IsCritical);
             Assert.True(control.ServerSide);
             Assert.Equal("1.2.840.113556.1.4.841", control.Type);
-            
+
             Assert.Equal(expectedValue, control.GetValue());
         }
 
         [Theory]
         [InlineData(null, DirectorySynchronizationOptions.None, 1048576, new byte[] { 48, 132, 0, 0, 0, 10, 2, 1, 0, 2, 3, 16, 0, 0, 4, 0 })]
-        [InlineData(new byte[0], DirectorySynchronizationOptions.None - 1, 0, new byte[] { 48, 132, 0, 0, 0, 11, 2, 4, 255, 255, 255, 255, 2, 1, 0, 4, 0 })]
-        [InlineData(new byte[] { 97, 98, 99 }, DirectorySynchronizationOptions.ObjectSecurity, 10, new byte[] { 48, 132, 0, 0, 0, 11, 2, 1, 1, 2, 1, 10, 4, 3, 97, 98, 99 })]
-        public void Ctor_Cookie_Options_AttributeCount(byte[] cookie, DirectorySynchronizationOptions option, int attributeCount , byte[] expectedValue)
+        [InlineData(new byte[0], DirectorySynchronizationOptions.None - 1, 0,   new byte[] { 48,132,0,0,0,8,2,1,255,2,1,0,4,0 })]//NOTE: updated openldap
+        [InlineData(new byte[] { 97, 98, 99 }, DirectorySynchronizationOptions.ObjectSecurity, 10, new byte[] { 48, 132, 0, 0, 0, 11, 2, 1, 1, 2, 1, 10, 4, 3, 97, 98, 99 })]  
+        public void Ctor_Cookie_Options_AttributeCount(byte[] cookie, DirectorySynchronizationOptions option, int attributeCount, byte[] expectedValue)
         {
             var control = new DirSyncRequestControl(cookie, option, attributeCount);
             Assert.Equal(attributeCount, control.AttributeCount);

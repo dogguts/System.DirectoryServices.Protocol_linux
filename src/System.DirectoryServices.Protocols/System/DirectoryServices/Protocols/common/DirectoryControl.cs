@@ -50,7 +50,7 @@ namespace System.DirectoryServices.Protocols
         public static ConnectionHandle GetHandle() => s_handle;
     }
 
-    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
+    [StructLayout(LayoutKind.Sequential)]
     public class SortKey
     {
         private string _name;
@@ -469,7 +469,7 @@ namespace System.DirectoryServices.Protocols
                 {
                     return Array.Empty<byte>();
                 }
-                
+
                 byte[] tempCookie = new byte[_dirsyncCookie.Length];
                 for (int i = 0; i < tempCookie.Length; i++)
                 {

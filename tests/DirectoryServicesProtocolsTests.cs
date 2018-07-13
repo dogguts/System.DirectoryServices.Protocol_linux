@@ -19,7 +19,8 @@ namespace System.DirectoryServices.Protocols.Tests
         internal static bool IsLdapConfigurationExist => LdapConfiguration.Configuration != null;
         internal static bool IsActiveDirectoryServer => IsLdapConfigurationExist && LdapConfiguration.Configuration.IsActiveDirectoryServer;
 
-        [ConditionalFact(nameof(IsLdapConfigurationExist))]
+        //  [ConditionalFact(nameof(IsLdapConfigurationExist))]
+        [Fact]
         public void TestAddingOU()
         {
             using (LdapConnection connection = GetConnection())
@@ -40,7 +41,7 @@ namespace System.DirectoryServices.Protocols.Tests
             }
         }
 
-        [ConditionalFact(nameof(IsLdapConfigurationExist))]
+        [Fact]//  [ConditionalFact(nameof(IsLdapConfigurationExist))]
         public void TestDeleteOU()
         {
             using (LdapConnection connection = GetConnection())
@@ -65,7 +66,7 @@ namespace System.DirectoryServices.Protocols.Tests
             }
         }
 
-        [ConditionalFact(nameof(IsLdapConfigurationExist))]
+        [Fact]// [ConditionalFact(nameof(IsLdapConfigurationExist))]
         public void TestAddAndModifyAttribute()
         {
             using (LdapConnection connection = GetConnection())
@@ -80,13 +81,13 @@ namespace System.DirectoryServices.Protocols.Tests
                     AddAttribute(connection, dn, "description", "Protocols Group 3");
                     SearchResultEntry sre = SearchOrganizationalUnit(connection, LdapConfiguration.Configuration.Domain, ouName);
                     Assert.NotNull(sre);
-                    Assert.Equal("Protocols Group 3", (string) sre.Attributes["description"][0]);
+                    Assert.Equal("Protocols Group 3", (string)sre.Attributes["description"][0]);
                     Assert.Throws<DirectoryOperationException>(() => AddAttribute(connection, dn, "description", "Protocols Group 3"));
 
                     ModifyAttribute(connection, dn, "description", "Modified Protocols Group 3");
                     sre = SearchOrganizationalUnit(connection, LdapConfiguration.Configuration.Domain, ouName);
                     Assert.NotNull(sre);
-                    Assert.Equal("Modified Protocols Group 3", (string) sre.Attributes["description"][0]);
+                    Assert.Equal("Modified Protocols Group 3", (string)sre.Attributes["description"][0]);
 
                     DeleteAttribute(connection, dn, "description");
                     sre = SearchOrganizationalUnit(connection, LdapConfiguration.Configuration.Domain, ouName);
@@ -100,7 +101,7 @@ namespace System.DirectoryServices.Protocols.Tests
             }
         }
 
-        [ConditionalFact(nameof(IsLdapConfigurationExist))]
+        [Fact]//   [ConditionalFact(nameof(IsLdapConfigurationExist))]
         public void TestNestedOUs()
         {
             using (LdapConnection connection = GetConnection())
@@ -108,7 +109,7 @@ namespace System.DirectoryServices.Protocols.Tests
                 string ouLevel1Name = "ProtocolsGroup4-1";
                 string dnLevel1 = "ou=" + ouLevel1Name;
                 string ouLevel2Name = "ProtocolsGroup4-2";
-                string dnLevel2 = "ou=" + ouLevel2Name+ "," + dnLevel1;
+                string dnLevel2 = "ou=" + ouLevel2Name + "," + dnLevel1;
 
                 DeleteEntry(connection, dnLevel2);
                 DeleteEntry(connection, dnLevel1);
@@ -131,7 +132,7 @@ namespace System.DirectoryServices.Protocols.Tests
             }
         }
 
-        [ConditionalFact(nameof(IsLdapConfigurationExist))]
+        [Fact]//  [ConditionalFact(nameof(IsLdapConfigurationExist))]
         public void TestAddUser()
         {
             using (LdapConnection connection = GetConnection())
@@ -183,7 +184,7 @@ namespace System.DirectoryServices.Protocols.Tests
             }
         }
 
-        [ConditionalFact(nameof(IsLdapConfigurationExist))]
+        [Fact]//  [ConditionalFact(nameof(IsLdapConfigurationExist))]
         public void TestAddingMultipleAttributes()
         {
             using (LdapConnection connection = GetConnection())
@@ -210,15 +211,15 @@ namespace System.DirectoryServices.Protocols.Tests
                     string fullDn = dn + "," + LdapConfiguration.Configuration.Domain;
 
                     ModifyRequest modRequest = new ModifyRequest(fullDn, mods);
-                    ModifyResponse modResponse = (ModifyResponse) connection.SendRequest(modRequest);
+                    ModifyResponse modResponse = (ModifyResponse)connection.SendRequest(modRequest);
                     Assert.Equal(ResultCode.Success, modResponse.ResultCode);
-                    Assert.Throws<DirectoryOperationException>(() => (ModifyResponse) connection.SendRequest(modRequest));
+                    Assert.Throws<DirectoryOperationException>(() => (ModifyResponse)connection.SendRequest(modRequest));
 
                     SearchResultEntry sre = SearchOrganizationalUnit(connection, LdapConfiguration.Configuration.Domain, ouName);
                     Assert.NotNull(sre);
-                    Assert.Equal("Description 5", (string) sre.Attributes["description"][0]);
+                    Assert.Equal("Description 5", (string)sre.Attributes["description"][0]);
                     Assert.Throws<DirectoryOperationException>(() => AddAttribute(connection, dn, "description", "Description 5"));
-                    Assert.Equal("123 4th Ave NE, State, Country", (string) sre.Attributes["postalAddress"][0]);
+                    Assert.Equal("123 4th Ave NE, State, Country", (string)sre.Attributes["postalAddress"][0]);
                     Assert.Throws<DirectoryOperationException>(() => AddAttribute(connection, dn, "postalAddress", "123 4th Ave NE, State, Country"));
 
                     mod1 = new DirectoryAttributeModification();
@@ -232,14 +233,14 @@ namespace System.DirectoryServices.Protocols.Tests
                     mod2.Add("689 5th Ave NE, State, Country");
                     mods = new DirectoryAttributeModification[2] { mod1, mod2 };
                     modRequest = new ModifyRequest(fullDn, mods);
-                    modResponse = (ModifyResponse) connection.SendRequest(modRequest);
+                    modResponse = (ModifyResponse)connection.SendRequest(modRequest);
                     Assert.Equal(ResultCode.Success, modResponse.ResultCode);
 
                     sre = SearchOrganizationalUnit(connection, LdapConfiguration.Configuration.Domain, ouName);
                     Assert.NotNull(sre);
-                    Assert.Equal("Modified Description 5", (string) sre.Attributes["description"][0]);
+                    Assert.Equal("Modified Description 5", (string)sre.Attributes["description"][0]);
                     Assert.Throws<DirectoryOperationException>(() => AddAttribute(connection, dn, "description", "Modified Description 5"));
-                    Assert.Equal("689 5th Ave NE, State, Country", (string) sre.Attributes["postalAddress"][0]);
+                    Assert.Equal("689 5th Ave NE, State, Country", (string)sre.Attributes["postalAddress"][0]);
                     Assert.Throws<DirectoryOperationException>(() => AddAttribute(connection, dn, "postalAddress", "689 5th Ave NE, State, Country"));
 
                     mod1 = new DirectoryAttributeModification();
@@ -251,7 +252,7 @@ namespace System.DirectoryServices.Protocols.Tests
                     mod2.Name = "postalAddress";
                     mods = new DirectoryAttributeModification[2] { mod1, mod2 };
                     modRequest = new ModifyRequest(fullDn, mods);
-                    modResponse = (ModifyResponse) connection.SendRequest(modRequest);
+                    modResponse = (ModifyResponse)connection.SendRequest(modRequest);
                     Assert.Equal(ResultCode.Success, modResponse.ResultCode);
 
                     sre = SearchOrganizationalUnit(connection, LdapConfiguration.Configuration.Domain, ouName);
@@ -266,7 +267,7 @@ namespace System.DirectoryServices.Protocols.Tests
             }
         }
 
-        [ConditionalFact(nameof(IsLdapConfigurationExist))]
+        [Fact]//    [ConditionalFact(nameof(IsLdapConfigurationExist))]
         public void TestMoveAndRenameUser()
         {
             using (LdapConnection connection = GetConnection())
@@ -303,10 +304,10 @@ namespace System.DirectoryServices.Protocols.Tests
                     sre = SearchUser(connection, user1Root, "protocolUser7.1");
                     Assert.NotNull(sre);
 
-                    ModifyDNRequest modDnRequest = new ModifyDNRequest( userDn1 + "," + LdapConfiguration.Configuration.Domain,
+                    ModifyDNRequest modDnRequest = new ModifyDNRequest(userDn1 + "," + LdapConfiguration.Configuration.Domain,
                                                                         dn2 + "," + LdapConfiguration.Configuration.Domain,
                                                                         "cn=protocolUser7.2");
-                    ModifyDNResponse modDnResponse = (ModifyDNResponse) connection.SendRequest(modDnRequest);
+                    ModifyDNResponse modDnResponse = (ModifyDNResponse)connection.SendRequest(modDnRequest);
                     Assert.Equal(ResultCode.Success, modDnResponse.ResultCode);
 
                     sre = SearchUser(connection, user1Root, "protocolUser7.1");
@@ -325,7 +326,7 @@ namespace System.DirectoryServices.Protocols.Tests
             }
         }
 
-        [ConditionalFact(nameof(IsLdapConfigurationExist))]
+        [Fact]//[ConditionalFact(nameof(IsLdapConfigurationExist))]
         public void TestAsyncSearch()
         {
             using (LdapConnection connection = GetConnection())
@@ -335,7 +336,7 @@ namespace System.DirectoryServices.Protocols.Tests
 
                 try
                 {
-                    for (int i=0; i<20; i++)
+                    for (int i = 0; i < 20; i++)
                     {
                         DeleteEntry(connection, "ou=ProtocolsSubGroup9." + i + "," + dn);
                     }
@@ -345,7 +346,7 @@ namespace System.DirectoryServices.Protocols.Tests
                     SearchResultEntry sre = SearchOrganizationalUnit(connection, LdapConfiguration.Configuration.Domain, ouName);
                     Assert.NotNull(sre);
 
-                    for (int i=0; i<20; i++)
+                    for (int i = 0; i < 20; i++)
                     {
                         AddOrganizationalUnit(connection, "ou=ProtocolsSubGroup9." + i + "," + dn);
                     }
@@ -369,7 +370,7 @@ namespace System.DirectoryServices.Protocols.Tests
                 }
                 finally
                 {
-                    for (int i=0; i<20; i++)
+                    for (int i = 0; i < 20; i++)
                     {
                         DeleteEntry(connection, "ou=ProtocolsSubGroup9." + i + "," + dn);
                     }
@@ -380,7 +381,7 @@ namespace System.DirectoryServices.Protocols.Tests
 
         private static void RunAsyncSearch(IAsyncResult asyncResult)
         {
-            ASyncOperationState state = (ASyncOperationState) asyncResult.AsyncState;
+            ASyncOperationState state = (ASyncOperationState)asyncResult.AsyncState;
 
             try
             {
@@ -402,7 +403,7 @@ namespace System.DirectoryServices.Protocols.Tests
                 }
                 else
                 {
-                    SearchResponse response = (SearchResponse) state.Connection.EndSendRequest(asyncResult);
+                    SearchResponse response = (SearchResponse)state.Connection.EndSendRequest(asyncResult);
 
                     if (response != null)
                     {
@@ -419,7 +420,7 @@ namespace System.DirectoryServices.Protocols.Tests
             }
         }
 
-        [ConditionalFact(nameof(IsActiveDirectoryServer))]
+        [Fact]//   [ConditionalFact(nameof(IsActiveDirectoryServer))]
         public void TestPageRequests()
         {
             using (LdapConnection connection = GetConnection())
@@ -429,7 +430,7 @@ namespace System.DirectoryServices.Protocols.Tests
 
                 try
                 {
-                    for (int i=0; i<20; i++)
+                    for (int i = 0; i < 20; i++)
                     {
                         DeleteEntry(connection, "ou=ProtocolsSubGroup8." + i + "," + dn);
                     }
@@ -439,7 +440,7 @@ namespace System.DirectoryServices.Protocols.Tests
                     SearchResultEntry sre = SearchOrganizationalUnit(connection, LdapConfiguration.Configuration.Domain, ouName);
                     Assert.NotNull(sre);
 
-                    for (int i=0; i<20; i++)
+                    for (int i = 0; i < 20; i++)
                     {
                         AddOrganizationalUnit(connection, "ou=ProtocolsSubGroup8." + i + "," + dn);
                     }
@@ -457,11 +458,11 @@ namespace System.DirectoryServices.Protocols.Tests
                     searchRequest.Controls.Add(searchOptions);
                     while (true)
                     {
-                        SearchResponse searchResponse = (SearchResponse) connection.SendRequest(searchRequest);
+                        SearchResponse searchResponse = (SearchResponse)connection.SendRequest(searchRequest);
                         Assert.Equal(1, searchResponse.Controls.Length);
                         Assert.True(searchResponse.Controls[0] is PageResultResponseControl);
 
-                        PageResultResponseControl pageResponse = (PageResultResponseControl) searchResponse.Controls[0];
+                        PageResultResponseControl pageResponse = (PageResultResponseControl)searchResponse.Controls[0];
 
                         if (pageResponse.Cookie.Length == 0)
                             break;
@@ -471,7 +472,7 @@ namespace System.DirectoryServices.Protocols.Tests
                 }
                 finally
                 {
-                    for (int i=0; i<20; i++)
+                    for (int i = 0; i < 20; i++)
                     {
                         DeleteEntry(connection, "ou=ProtocolsSubGroup8." + i + "," + dn);
                     }
@@ -484,7 +485,7 @@ namespace System.DirectoryServices.Protocols.Tests
         {
             string dn = entryDn + "," + LdapConfiguration.Configuration.Domain;
             ModifyRequest modifyRequest = new ModifyRequest(dn, DirectoryAttributeOperation.Delete, attributeName);
-            ModifyResponse modifyResponse = (ModifyResponse) connection.SendRequest(modifyRequest);
+            ModifyResponse modifyResponse = (ModifyResponse)connection.SendRequest(modifyRequest);
             Assert.Equal(ResultCode.Success, modifyResponse.ResultCode);
         }
 
@@ -492,7 +493,7 @@ namespace System.DirectoryServices.Protocols.Tests
         {
             string dn = entryDn + "," + LdapConfiguration.Configuration.Domain;
             ModifyRequest modifyRequest = new ModifyRequest(dn, DirectoryAttributeOperation.Replace, attributeName, attributeValue);
-            ModifyResponse modifyResponse = (ModifyResponse) connection.SendRequest(modifyRequest);
+            ModifyResponse modifyResponse = (ModifyResponse)connection.SendRequest(modifyRequest);
             Assert.Equal(ResultCode.Success, modifyResponse.ResultCode);
         }
 
@@ -500,7 +501,7 @@ namespace System.DirectoryServices.Protocols.Tests
         {
             string dn = entryDn + "," + LdapConfiguration.Configuration.Domain;
             ModifyRequest modifyRequest = new ModifyRequest(dn, DirectoryAttributeOperation.Add, attributeName, attributeValue);
-            ModifyResponse modifyResponse = (ModifyResponse) connection.SendRequest(modifyRequest);
+            ModifyResponse modifyResponse = (ModifyResponse)connection.SendRequest(modifyRequest);
             Assert.Equal(ResultCode.Success, modifyResponse.ResultCode);
         }
 
@@ -508,7 +509,7 @@ namespace System.DirectoryServices.Protocols.Tests
         {
             string dn = entryDn + "," + LdapConfiguration.Configuration.Domain;
             AddRequest addRequest = new AddRequest(dn, "organizationalUnit");
-            AddResponse addResponse = (AddResponse) connection.SendRequest(addRequest);
+            AddResponse addResponse = (AddResponse)connection.SendRequest(addRequest);
             Assert.Equal(ResultCode.Success, addResponse.ResultCode);
         }
 
@@ -516,7 +517,7 @@ namespace System.DirectoryServices.Protocols.Tests
         {
             string dn = entryDn + "," + LdapConfiguration.Configuration.Domain;
             AddRequest addRequest = new AddRequest(dn, "organizationalRole");
-            AddResponse addResponse = (AddResponse) connection.SendRequest(addRequest);
+            AddResponse addResponse = (AddResponse)connection.SendRequest(addRequest);
             Assert.Equal(ResultCode.Success, addResponse.ResultCode);
         }
 
@@ -526,7 +527,7 @@ namespace System.DirectoryServices.Protocols.Tests
             {
                 string dn = entryDn + "," + LdapConfiguration.Configuration.Domain;
                 DeleteRequest delRequest = new DeleteRequest(dn);
-                DeleteResponse delResponse = (DeleteResponse) connection.SendRequest(delRequest);
+                DeleteResponse delResponse = (DeleteResponse)connection.SendRequest(delRequest);
                 Assert.Equal(ResultCode.Success, delResponse.ResultCode);
             }
             catch
@@ -539,7 +540,7 @@ namespace System.DirectoryServices.Protocols.Tests
         {
             string filter = $"(&(objectClass=organizationalUnit)(ou={ouName}))";
             SearchRequest searchRequest = new SearchRequest(rootDn, filter, SearchScope.OneLevel, null);
-            SearchResponse searchResponse = (SearchResponse) connection.SendRequest(searchRequest);
+            SearchResponse searchResponse = (SearchResponse)connection.SendRequest(searchRequest);
 
             if (searchResponse.Entries.Count > 0)
                 return searchResponse.Entries[0];
@@ -551,7 +552,7 @@ namespace System.DirectoryServices.Protocols.Tests
         {
             string filter = $"(&(objectClass=organizationalRole)(cn={userName}))";
             SearchRequest searchRequest = new SearchRequest(rootDn, filter, SearchScope.OneLevel, null);
-            SearchResponse searchResponse = (SearchResponse) connection.SendRequest(searchRequest);
+            SearchResponse searchResponse = (SearchResponse)connection.SendRequest(searchRequest);
 
             if (searchResponse.Entries.Count > 0)
                 return searchResponse.Entries[0];
@@ -572,10 +573,11 @@ namespace System.DirectoryServices.Protocols.Tests
             {
                 AuthType = AuthType.Basic
             };
-
-            connection.Bind();
+//First(!) seet sessionoptions than Bind !!
             connection.SessionOptions.ProtocolVersion = 3;
             connection.Timeout = new TimeSpan(0, 3, 0);
+
+            connection.Bind();
             return connection;
         }
     }
