@@ -1,6 +1,0 @@
-#Summary
-Proof-Of-Concept Port of core-fx "System.DirectoryServices.Protocols" to Linux (using libldap)
-##Nuget
-[S.DS.P.linux](https://www.nuget.org/packages/S.DS.P.linux/)
-##Relevant github issue
-[Support System.DirectoryServices.Protocols on Linux/Mac #24843] https://github.com/dotnet/corefx/issues/24843
