@@ -10,7 +10,7 @@ The ideal port would be fully managed of course, but unfortunately isn't here (y
 [https://www.nuget.org/packages/S.DS.P.linux](https://www.nuget.org/packages/S.DS.P.linux/)
 
 
-##Prerequisites
+## Prerequisites
 
 * Linux (obviously)
 
@@ -25,7 +25,7 @@ The ideal port would be fully managed of course, but unfortunately isn't here (y
 * No LDAPS, but StartTransportLayerSecurity works
 
 
-##Tested
+## Tested
 
 * Debian 9-x64, .NET Core SDK 2.1.300, libldap-2.4-2
 * Directories: 
@@ -33,7 +33,7 @@ The ideal port would be fully managed of course, but unfortunately isn't here (y
  * Active Directory (2012 R2)
 
 
-##Disclaimer
+## Disclaimer
 
 This is by no means even remotely production ready. **Use at your onwn risk**
 
@@ -41,7 +41,7 @@ But for the time being it suits my personal needs and might serve yours.
 
 
 
-##Relevant github issue
+## Relevant github issue
 
-[Support System.DirectoryServices.Protocols on Linux/Mac #24843] (https://github.com/dotnet/corefx/issues/24843)
+[Support System.DirectoryServices.Protocols on Linux/Mac #24843](https://github.com/dotnet/corefx/issues/24843)
 
