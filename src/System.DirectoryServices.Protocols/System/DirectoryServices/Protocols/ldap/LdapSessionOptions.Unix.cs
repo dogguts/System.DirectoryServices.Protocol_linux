@@ -5,6 +5,17 @@ namespace System.DirectoryServices.Protocols
 {
     public partial class LdapSessionOptions
     {
+
+        //typedef int (LDAP_TLS_CONNECT_CB) LDAP_P (( struct ldap *ld, void *ssl, void *ctx, void *arg ));
+
+        public static LDAP_TLS_CONNECT_CB _routine = new LDAP_TLS_CONNECT_CB(ConnectTls);
+
+        public static bool ConnectTls([In] IntPtr ldapHandle, IntPtr ssl, IntPtr ctx, IntPtr arg)
+        {
+            //callback for ldap_set_option/ldap_set_option_TLS_CONNECT_CB, currently unused
+            return true;
+        }
+
         public unsafe void StartTransportLayerSecurity(DirectoryControlCollection controls)
         {
             IntPtr serverControlArray = IntPtr.Zero;
@@ -20,6 +31,7 @@ namespace System.DirectoryServices.Protocols
             if (_connection._disposed)
             {
                 throw new ObjectDisposedException(GetType().Name);
+
             }
 
             try
@@ -61,7 +73,30 @@ namespace System.DirectoryServices.Protocols
                     Marshal.WriteIntPtr(tempPtr, IntPtr.Zero);
                 }
 
+                // requested certificate. 
+                //  - no certificate = no problem. 
+                //  - bad certificate = no problem
+                var require_cert = (int)LDAP_OPT_X_TLS.ALLOW;
+                Wldap32.ldap_set_option_int(_connection._ldapHandle, LdapOption.LDAP_OPT_X_TLS_REQUIRE_CERT, ref require_cert);
+                //new tls client context
+                var off = 0;
+                Wldap32.ldap_set_option_int(_connection._ldapHandle, LdapOption.LDAP_OPT_X_TLS_NEWCTX, ref off);
+
+                //var test tls connect callback
+                var result = Wldap32.ldap_set_option_TLS_CONNECT_CB(_connection._ldapHandle, LdapOption.LDAP_OPT_X_TLS_CONNECT_CB, _routine);
+
+
+
                 int error = Wldap32.ldap_start_tls(_connection._ldapHandle, serverControlArray, clientControlArray);
+
+
+                //IntPtr ret1 = IntPtr.Zero;
+                //Wldap32.ldap_get_option_ptr(_connection._ldapHandle, LdapOption.LDAP_OPT_X_TLS_CACERTFILE, ref ret1);
+                //Console.WriteLine(Encoding.PtrToStringUTF8(ret1));
+
+                //typedef int (LDAP_TLS_CONNECT_CB) LDAP_P (( struct ldap *ld, void *ssl, void *ctx, void *arg ));
+
+
                 //TODO: check referrals equivalent with openldap 
                 /*                if (ldapResult != IntPtr.Zero)
                                 {

@@ -7,6 +7,28 @@ using System.Security;
 
 namespace System.DirectoryServices.Protocols
 {
+
+   
+    //typedef int (LDAP_TLS_CONNECT_CB) LDAP_P (( struct ldap *ld, void *ssl, void *ctx, void *arg ));
+
+
+
+
+
+    /*struct ldap {
+        // thread shared 
+        struct ldap_common	*ldc;
+
+        // thread specific  
+        ber_int_t		ld_errno;
+        char			*ld_error;
+        char			*ld_matched;
+        char			**ld_referrals;
+    };*/
+
+    // public static extern int ldap_result([In] ConnectionHandle ldapHandle, int messageId, int all, LDAP_TIMEVAL timeout, ref IntPtr result);
+
+
     [StructLayout(LayoutKind.Sequential)]
     internal class Luid
     {
@@ -49,10 +71,15 @@ namespace System.DirectoryServices.Protocols
     /// <summary>Peer  certificate  checking  strategy</summary>
     internal enum LDAP_OPT_X_TLS
     {
+        /// <summary>certificate is not requested</summary>
         NEVER = 0,
+        /// <summary>certificate is requested. If no certificate is provided, or a bad certificate is provided, the session is immediately terminated.</summary>
         HARD = 1,
+        /// <summary>certificate is requested. If no certificate is provided, or a bad certificate is provided, the session is immediately terminated.</summary>
         DEMAND = 2,
+        /// <summary>certificate is requested. If no certificate is provided, the session proceeds normally. If a bad certificate is provided, it will be ignored and the session proceeds normally.</summary>
         ALLOW = 3,
+        /// <summary>certificate is requested. If no certificate is provided, the session proceeds normally. If a bad certificate is provided, the session is immediately terminated.</summary>
         TRY = 4,
     }
 
@@ -65,6 +92,8 @@ namespace System.DirectoryServices.Protocols
         PEER = 1,
         ALL = 2
     }
+
+
 
     internal enum LdapOption
     {
@@ -439,6 +468,9 @@ namespace System.DirectoryServices.Protocols
         }
     }
 
+ [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+    public delegate bool LDAP_TLS_CONNECT_CB(IntPtr connectionHandle, IntPtr ssl, IntPtr ctx, IntPtr arg);
+
     internal class Wldap32
     {
         private const string Wldap32dll = "ldap";
@@ -446,6 +478,11 @@ namespace System.DirectoryServices.Protocols
         public const int SEC_WINNT_AUTH_IDENTITY_UNICODE = 0x2;
         public const int SEC_WINNT_AUTH_IDENTITY_VERSION = 0x200;
         public const string MICROSOFT_KERBEROS_NAME_W = "Kerberos";
+
+
+        [DllImport(Wldap32dll, EntryPoint = "ldap_set_option")]
+        public static extern int ldap_set_option_TLS_CONNECT_CB([In] ConnectionHandle ldapHandle, [In] LdapOption option, LDAP_TLS_CONNECT_CB outValue);
+
 
 
         [DllImport(Wldap32dll, EntryPoint = "ldap_bind_s")]
@@ -531,6 +568,13 @@ namespace System.DirectoryServices.Protocols
 
         [DllImport(Wldap32dll, EntryPoint = "ldap_stop_tls_s")]
         public static extern byte ldap_stop_tls(ConnectionHandle ldapHandle);
+
+        [DllImport(Wldap32dll, EntryPoint = "ldap_tls_inplace")]
+        public static extern int ldap_tls_inplace([In] ConnectionHandle ldapHandle);
+        [DllImport(Wldap32dll, EntryPoint = "ldap_install_tls")]
+        public static extern int ldap_install_tls([In] ConnectionHandle ldapHandle);
+
+
 
         [DllImport(Wldap32dll, EntryPoint = "ldap_rename")]
         public static extern int ldap_rename([In] ConnectionHandle ldapHandle, string dn, string newRdn, string newParentDn, int deleteOldRdn, IntPtr servercontrol, IntPtr clientcontrol, ref int messageNumber);
