@@ -35,9 +35,10 @@ The ideal port would be fully managed of course, but unfortunately isn't here (y
 
 ## Disclaimer
 
-This is by no means even remotely production ready. **Use at your onwn risk**
+Quick (and somewhat dirty) port that suits my personal needs and might serve yours.
+**Use at your onwn risk**
 
-But for the time being it suits my personal needs and might serve yours.
+
 
 
 
